@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://wesley-0001.github.io/wes-portifolio/",
+  "homepage": "https://wesley-0001.github.io/wes-portifolio-main/",
   "scripts": {
     "dev": "vite --port=3001 --host=0.0.0.0",
     "build": "vite build",

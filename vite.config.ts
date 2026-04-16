@@ -4,13 +4,13 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { defineConfig } from "vite";
 
-/** URL canónica (deploy GitHub Pages + base `/wes-portifolio/`) — alinhada ao `homepage` do package.json */
-const CANONICAL_ORIGIN = "https://wesley-0001.github.io/wes-portifolio";
+/** URL canónica (deploy GitHub Pages + base `/wes-portifolio-main/`) — alinhada ao `homepage` do package.json */
+const CANONICAL_ORIGIN = "https://wesley-0001.github.io/wes-portifolio-main";
 
 // GitHub Pages: URL https://<user>.github.io/<repo>/
-// O nome da pasta do repo tem de coincidir com este base (ex.: wes-portifolio).
+// O nome do repositório tem de coincidir com este base (ex.: wes-portifolio-main).
 export default defineConfig({
-  base: "/wes-portifolio/",
+  base: "/wes-portifolio-main/",
   build: {
     chunkSizeWarningLimit: 1000,
   },
