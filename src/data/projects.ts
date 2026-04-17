@@ -9,7 +9,7 @@ export type Project = {
   category: string;
   /** Pills abaixo do slide principal (ex.: stack, tipo) */
   tags: string[];
-  /** Caminho da capa em `public/` (ex.: `/screenshots/termo.gif`) */
+  /** Caminho da capa em `public/` (ex.: `/screenshots/Termogif.gif`) */
   coverImage?: string;
   link?: string;
   status?: ProjectStatus;
@@ -35,7 +35,9 @@ const projectsData: Project[] = [
       "Portuguese Wordle-style word game — React + TypeScript; ships as a standalone app alongside the portfolio.",
     category: "game",
     tags: ["PROJETO REAL", "REACT", "TYPESCRIPT"],
-    coverImage: "/screenshots/termo.gif",
+    coverImage: "/screenshots/Termogif.gif",
+    /** Deploy standalone (`_termo-src` / homepage no package.json do jogo) */
+    link: "https://wesley-0001.github.io/Termo/",
     status: "live",
   },
   {

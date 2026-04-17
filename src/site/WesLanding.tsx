@@ -1,5 +1,4 @@
 import {
-  ArrowUpRight,
   ChevronLeft,
   ChevronRight,
   Code2,
@@ -21,6 +20,7 @@ import {
   portfolioMeshThemeLabel,
   type PortfolioMeshTheme,
 } from "./portfolioMeshTheme";
+import { BbsTerminalPreview } from "./BbsTerminalPreview";
 import { InteractiveWebBackground } from "./InteractiveWebBackground";
 import { HeroPortfolioVisual } from "./HeroPortfolioVisual";
 import ContactSection from "@/components/contact/ContactSection";
@@ -163,6 +163,14 @@ function ProjectPaginationDots({
   );
 }
 
+/** Classes extra no `<img>` da capa — p.ex. zoom no GIF do TERMO sem alterar o layout do slide. */
+function projectCoverImageClass(projectId: string): string {
+  if (projectId === "termo") {
+    return "origin-center scale-[1.11] motion-safe:group-hover:!scale-[1.138]";
+  }
+  return "";
+}
+
 function projectCoverClass(id: string): string {
   switch (id) {
     case "wes-portfolio":
@@ -179,9 +187,12 @@ function projectCoverClass(id: string): string {
 function ProjectSlideCover({
   project,
   emphasis,
+  rootClassName,
 }: {
   project: Project;
   emphasis: "center" | "side";
+  /** Classes extras no container (ex.: hover do carrossel quando o slide é link) */
+  rootClassName?: string;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
 
@@ -191,7 +202,8 @@ function ProjectSlideCover({
 
   const hasCover =
     typeof project.coverImage === "string" && project.coverImage.length > 0;
-  const showPhoto = hasCover && !imgFailed;
+  const isBbsTerminal = project.id === "wes-portfolio";
+  const showPhoto = hasCover && !imgFailed && !isBbsTerminal;
 
   const border =
     emphasis === "center"
@@ -199,14 +211,16 @@ function ProjectSlideCover({
       : "border-white/[0.06] opacity-[0.44] transition duration-300 hover:opacity-[0.62]";
   return (
     <div
-      className={`relative h-full w-full overflow-hidden rounded-[1.35rem] border ${border}`}
+      className={`relative h-full w-full overflow-hidden rounded-[1.35rem] border ${border}${rootClassName ? ` ${rootClassName}` : ""}`}
     >
-      {showPhoto ? (
+      {isBbsTerminal ? (
+        <BbsTerminalPreview emphasis={emphasis} />
+      ) : showPhoto ? (
         <img
           key={project.coverImage}
           src={assetUrl(project.coverImage)}
           alt=""
-          className="absolute inset-0 z-[1] h-full w-full object-cover object-center"
+          className={`absolute inset-0 z-[1] h-full w-full object-cover object-center ${projectCoverImageClass(project.id)}`.trim()}
           loading="lazy"
           decoding="async"
           sizes={
@@ -222,7 +236,7 @@ function ProjectSlideCover({
           aria-hidden
         />
       )}
-      {!showPhoto ? (
+      {!showPhoto && !isBbsTerminal ? (
         <div
           className="pointer-events-none absolute inset-0 z-[2] opacity-[0.11]"
           style={{
@@ -234,7 +248,11 @@ function ProjectSlideCover({
         />
       ) : null}
       <div
-        className="pointer-events-none absolute inset-0 z-[3] bg-gradient-to-t from-black/60 via-black/15 to-transparent"
+        className={
+          isBbsTerminal
+            ? "pointer-events-none absolute inset-0 z-[3] bg-gradient-to-t from-black/72 via-black/[0.12] to-transparent"
+            : "pointer-events-none absolute inset-0 z-[3] bg-gradient-to-t from-black/60 via-black/15 to-transparent"
+        }
         aria-hidden
       />
       <p
@@ -267,6 +285,8 @@ function WorkFeaturedCarousel({
   const openCode = (id: string) =>
     String(projects.findIndex((x) => x.id === id) + 1).padStart(2, "0");
   const inProgress = pCenter.status === "in_progress";
+  const projectHref = pCenter.link?.trim();
+  const canOpenProject = Boolean(projectHref) && !inProgress;
 
   const touchStartX = useRef<number | null>(null);
 
@@ -330,9 +350,27 @@ function WorkFeaturedCarousel({
 
           <div className="relative z-20 w-full max-w-[min(92vw,600px)] shrink-0 transition duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]">
             <div className="aspect-[16/10] w-full">
-              <div className="h-full w-full">
-                <ProjectSlideCover project={pCenter} emphasis="center" />
-              </div>
+              {canOpenProject ? (
+                <a
+                  href={projectHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block h-full w-full cursor-pointer rounded-[1.35rem] outline-none transition duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_22px_56px_rgba(0,0,0,0.42),0_0_36px_rgba(56,189,248,0.09)] focus-visible:ring-2 focus-visible:ring-emerald-400/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050508] motion-safe:[&_.bbs-terminal-preview-root]:origin-center motion-safe:[&_img]:origin-center motion-safe:[&_.bbs-terminal-preview-root]:transition-transform motion-safe:[&_img]:transition-transform motion-safe:[&_.bbs-terminal-preview-root]:duration-500 motion-safe:[&_img]:duration-500 motion-safe:[&_.bbs-terminal-preview-root]:ease-out motion-safe:[&_img]:ease-out motion-safe:group-hover:[&_.bbs-terminal-preview-root]:scale-[1.028] motion-safe:group-hover:[&_img]:scale-[1.025]"
+                  aria-label={`Abrir projeto: ${pCenter.title}`}
+                >
+                  <div className="h-full w-full transition duration-300 group-hover:opacity-[0.98]">
+                    <ProjectSlideCover
+                      project={pCenter}
+                      emphasis="center"
+                      rootClassName="transition duration-300 group-hover:border-emerald-400/28 group-hover:shadow-[0_0_36px_rgba(52,211,153,0.12)]"
+                    />
+                  </div>
+                </a>
+              ) : (
+                <div className="h-full w-full">
+                  <ProjectSlideCover project={pCenter} emphasis="center" />
+                </div>
+              )}
             </div>
           </div>
 
@@ -366,16 +404,15 @@ function WorkFeaturedCarousel({
         <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-neutral-500 md:text-[0.95rem]">
           {pCenter.description}
         </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-          {pCenter.link ? (
+        <div className="mt-8 flex flex-col items-center gap-2 sm:gap-2.5">
+          {canOpenProject ? (
             <a
-              href={pCenter.link}
+              href={projectHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400/95 transition hover:text-emerald-300"
+              className="inline-flex items-center justify-center rounded-lg border border-white/[0.09] bg-white/[0.02] px-3.5 py-2 text-[0.8125rem] font-medium text-neutral-100/92 shadow-none transition duration-300 ease-out hover:-translate-y-0.5 hover:border-emerald-400/32 hover:bg-emerald-400/[0.05] hover:text-white hover:opacity-100 hover:shadow-[0_0_28px_rgba(52,211,153,0.14)] active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400/35"
             >
-              Abrir projeto
-              <ArrowUpRight size={16} aria-hidden />
+              Abrir projeto ↗
             </a>
           ) : inProgress ? (
             <p className="wes-label-mono text-[0.72rem] text-neutral-500">
@@ -389,6 +426,14 @@ function WorkFeaturedCarousel({
               </span>
             </p>
           )}
+          {canOpenProject ? (
+            <p className="wes-label-mono max-w-md text-center text-[0.65rem] leading-relaxed text-neutral-600">
+              Acesso pelo terminal:{" "}
+              <span className="text-neutral-500">
+                open {openCode(pCenter.id)}
+              </span>
+            </p>
+          ) : null}
         </div>
       </div>
 
