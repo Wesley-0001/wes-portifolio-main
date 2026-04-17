@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import type { PortfolioMeshTheme } from "./portfolioMeshTheme";
 
 type Particle = {
   nx: number;
@@ -36,9 +37,97 @@ function shouldIgnoreInteractionTarget(target: EventTarget | null): boolean {
   );
 }
 
+type MeshPhysics = {
+  areaDivNarrow: number;
+  areaDivWide: number;
+  capNarrowMin: number;
+  capNarrowMax: number;
+  capWideMin: number;
+  capWideMax: number;
+  maxParticlesNarrow: number;
+  maxParticlesWide: number;
+  spawnNarrow: number;
+  spawnWide: number;
+  kSpring: number;
+  damping: number;
+  repulse: number;
+  linkDistMul: number;
+  lineAlphaMin: number;
+  lineAlphaRange: number;
+  lineAlphaStaticMin: number;
+  lineAlphaStaticRange: number;
+};
+
+function physicsForTheme(theme: PortfolioMeshTheme): MeshPhysics {
+  if (theme === "ember") {
+    return {
+      areaDivNarrow: 38000,
+      areaDivWide: 25500,
+      capNarrowMin: 28,
+      capNarrowMax: 42,
+      capWideMin: 44,
+      capWideMax: 64,
+      maxParticlesNarrow: 102,
+      maxParticlesWide: 148,
+      spawnNarrow: 3,
+      spawnWide: 5,
+      kSpring: 0.0172,
+      damping: 0.905,
+      repulse: 0.93,
+      linkDistMul: 0.9,
+      lineAlphaMin: 0.022,
+      lineAlphaRange: 0.068,
+      lineAlphaStaticMin: 0.022,
+      lineAlphaStaticRange: 0.065,
+    };
+  }
+  return {
+    areaDivNarrow: 52000,
+    areaDivWide: 38000,
+    capNarrowMin: 22,
+    capNarrowMax: 34,
+    capWideMin: 34,
+    capWideMax: 52,
+    maxParticlesNarrow: 88,
+    maxParticlesWide: 128,
+    spawnNarrow: 2,
+    spawnWide: 4,
+    kSpring: 0.011,
+    damping: 0.935,
+    repulse: 0.92,
+    linkDistMul: 1,
+    lineAlphaMin: 0.026,
+    lineAlphaRange: 0.062,
+    lineAlphaStaticMin: 0.026,
+    lineAlphaStaticRange: 0.06,
+  };
+}
+
+function lineColor(theme: PortfolioMeshTheme, alpha: number): string {
+  switch (theme) {
+    case "spectrum":
+      return `rgba(200, 230, 235, ${alpha})`;
+    case "ember":
+      return `rgba(212, 86, 76, ${alpha})`;
+    default:
+      return `rgba(255, 255, 255, ${alpha})`;
+  }
+}
+
+function dotColor(theme: PortfolioMeshTheme, alpha: number): string {
+  switch (theme) {
+    case "spectrum":
+      return `rgba(215, 235, 240, ${alpha})`;
+    case "ember":
+      return `rgba(242, 154, 138, ${alpha})`;
+    default:
+      return `rgba(255, 255, 255, ${alpha})`;
+  }
+}
+
 type Props = {
-  /** Tom levemente mais frio quando o fundo alternativo está ativo */
-  alternateBg?: boolean;
+  /** Tema visual da malha (rede neutra, spectrum frio, ember intenso). */
+  meshTheme?: PortfolioMeshTheme;
   className?: string;
 };
 
@@ -47,7 +136,7 @@ type Props = {
  * repulsão suave ao cursor e novos nós ao clicar (sem capturar pointer: listeners no window).
  */
 export function InteractiveWebBackground({
-  alternateBg = false,
+  meshTheme = "network",
   className = "",
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -61,6 +150,8 @@ export function InteractiveWebBackground({
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     let reducedMotion = mq.matches;
 
+    const phys = physicsForTheme(meshTheme);
+
     const particles: Particle[] = [];
     let w = window.innerWidth;
     let h = window.innerHeight;
@@ -68,20 +159,24 @@ export function InteractiveWebBackground({
     const mouse = { x: 0, y: 0, active: false };
 
     const isNarrow = () => w < 768;
-    const maxParticles = () => (isNarrow() ? 88 : 128);
-    const spawnPerClick = () => (isNarrow() ? 2 : 4);
-
-    const K_SPRING = 0.011;
-    const DAMPING = 0.935;
-    const REPULSE = 0.92;
+    const maxParticles = () =>
+      isNarrow() ? phys.maxParticlesNarrow : phys.maxParticlesWide;
+    const spawnPerClick = () =>
+      isNarrow() ? phys.spawnNarrow : phys.spawnWide;
 
     function seed() {
       particles.length = 0;
       const rnd = mulberry32(21611);
       const area = w * h;
       const cap = isNarrow()
-        ? Math.min(34, Math.max(22, Math.floor(area / 52000)))
-        : Math.min(52, Math.max(34, Math.floor(area / 38000)));
+        ? Math.min(
+            phys.capNarrowMax,
+            Math.max(phys.capNarrowMin, Math.floor(area / phys.areaDivNarrow)),
+          )
+        : Math.min(
+            phys.capWideMax,
+            Math.max(phys.capWideMin, Math.floor(area / phys.areaDivWide)),
+          );
       const count = cap;
       for (let i = 0; i < count; i++) {
         const nx = rnd();
@@ -144,7 +239,8 @@ export function InteractiveWebBackground({
 
     function metrics() {
       const m = Math.min(w, h);
-      const linkDist = Math.min(185, Math.max(118, m * 0.21));
+      const raw = Math.min(185, Math.max(118, m * 0.21)) * phys.linkDistMul;
+      const linkDist = Math.min(190, Math.max(96, raw));
       const repulseR = Math.min(168, Math.max(96, m * 0.14));
       return {
         linkDist,
@@ -156,6 +252,10 @@ export function InteractiveWebBackground({
 
     function step() {
       const { repulseR, repulseRSq } = metrics();
+      const K_SPRING = phys.kSpring;
+      const DAMPING = phys.damping;
+      const REPULSE = phys.repulse;
+
       for (const p of particles) {
         p.nx = Math.min(0.999, Math.max(0.001, p.nx));
         p.ny = Math.min(0.999, Math.max(0.001, p.ny));
@@ -191,26 +291,15 @@ export function InteractiveWebBackground({
       }
     }
 
-    function lineColor(alpha: number) {
-      if (alternateBg) {
-        return `rgba(200, 230, 235, ${alpha})`;
-      }
-      return `rgba(255, 255, 255, ${alpha})`;
-    }
-
-    function dotColor(alpha: number) {
-      if (alternateBg) {
-        return `rgba(215, 235, 240, ${alpha})`;
-      }
-      return `rgba(255, 255, 255, ${alpha})`;
-    }
-
     function draw() {
       const { linkDist, linkDistSq } = metrics();
       ctx.clearRect(0, 0, w, h);
       const n = particles.length;
-      ctx.lineWidth = 0.55;
+      ctx.lineWidth = meshTheme === "ember" ? 0.5 : 0.55;
       ctx.lineCap = "round";
+
+      const a0 = phys.lineAlphaMin;
+      const ar = phys.lineAlphaRange;
 
       for (let i = 0; i < n; i++) {
         for (let j = i + 1; j < n; j++) {
@@ -222,8 +311,8 @@ export function InteractiveWebBackground({
           if (d2 > linkDistSq) continue;
           const d = Math.sqrt(d2);
           const t = 1 - d / linkDist;
-          const alpha = 0.026 + t * 0.062;
-          ctx.strokeStyle = lineColor(alpha);
+          const alpha = a0 + t * ar;
+          ctx.strokeStyle = lineColor(meshTheme, alpha);
           ctx.beginPath();
           ctx.moveTo(a.x, a.y);
           ctx.lineTo(b.x, b.y);
@@ -231,11 +320,16 @@ export function InteractiveWebBackground({
         }
       }
 
+      const dotBase = meshTheme === "ember" ? 0.2 : 0.19;
+      const dotBoost = meshTheme === "ember" ? 0.06 : 0.055;
+      const rSpawn = meshTheme === "ember" ? 1.28 : 1.25;
+      const rBase = meshTheme === "ember" ? 1.08 : 1.05;
+
       for (const p of particles) {
-        const alpha = 0.19 + (p.spawned ? 0.055 : 0);
-        ctx.fillStyle = dotColor(alpha);
+        const alpha = dotBase + (p.spawned ? dotBoost : 0);
+        ctx.fillStyle = dotColor(meshTheme, alpha);
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.spawned ? 1.25 : 1.05, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, p.spawned ? rSpawn : rBase, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -243,7 +337,10 @@ export function InteractiveWebBackground({
     function drawStaticMesh() {
       const { linkDist, linkDistSq } = metrics();
       ctx.clearRect(0, 0, w, h);
-      ctx.lineWidth = 0.55;
+      ctx.lineWidth = meshTheme === "ember" ? 0.5 : 0.55;
+      const a0 = phys.lineAlphaStaticMin;
+      const ar = phys.lineAlphaStaticRange;
+
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const a = particles[i];
@@ -254,8 +351,8 @@ export function InteractiveWebBackground({
           if (d2 > linkDistSq) continue;
           const d = Math.sqrt(d2);
           const t = 1 - d / linkDist;
-          const alpha = 0.026 + t * 0.06;
-          ctx.strokeStyle = lineColor(alpha);
+          const alpha = a0 + t * ar;
+          ctx.strokeStyle = lineColor(meshTheme, alpha);
           ctx.beginPath();
           ctx.moveTo(a.x, a.y);
           ctx.lineTo(b.x, b.y);
@@ -263,9 +360,9 @@ export function InteractiveWebBackground({
         }
       }
       for (const p of particles) {
-        ctx.fillStyle = dotColor(0.32);
+        ctx.fillStyle = dotColor(meshTheme, 0.32);
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 1.05, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, meshTheme === "ember" ? 1.08 : 1.05, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -355,7 +452,7 @@ export function InteractiveWebBackground({
       document.removeEventListener("visibilitychange", onVisibility);
       mq.removeEventListener("change", onMq);
     };
-  }, [alternateBg]);
+  }, [meshTheme]);
 
   return (
     <canvas

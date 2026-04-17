@@ -16,6 +16,11 @@ import {
   type TouchEventHandler,
 } from "react";
 import { BBS_TERMINAL_URL, CONTACT } from "../contact";
+import {
+  nextPortfolioMeshTheme,
+  portfolioMeshThemeLabel,
+  type PortfolioMeshTheme,
+} from "./portfolioMeshTheme";
 import { InteractiveWebBackground } from "./InteractiveWebBackground";
 import { HeroPortfolioVisual } from "./HeroPortfolioVisual";
 import ContactSection from "@/components/contact/ContactSection";
@@ -810,14 +815,22 @@ export default function WesLanding({ onBack }: WesLandingProps) {
 
   const [projectSlide, setProjectSlide] = useState(0);
 
-  const [alternateBg, setAlternateBg] = useState(false);
+  const [meshTheme, setMeshTheme] = useState<PortfolioMeshTheme>("network");
   const activeSection = useSectionScrollSpy(SECTION_IDS);
+
+  const pageBgClass =
+    meshTheme === "spectrum"
+      ? "bg-[#05070d]"
+      : meshTheme === "ember"
+        ? "bg-[#060203]"
+        : "bg-black";
 
   return (
     <div
-      className={`wes-landing-root relative min-h-screen w-full text-neutral-100 transition-[opacity,background-color] duration-500 ease-[cubic-bezier(0.33,1,0.68,1)] will-change-[opacity] ${
-        alternateBg ? "bg-[#05070d]" : "bg-black"
-      } ${visible && !exiting ? "opacity-100" : "opacity-0"}`}
+      data-wes-mesh-theme={meshTheme}
+      className={`wes-landing-root relative min-h-screen w-full text-neutral-100 transition-[opacity,background-color] duration-500 ease-[cubic-bezier(0.33,1,0.68,1)] will-change-[opacity] ${pageBgClass} ${
+        visible && !exiting ? "opacity-100" : "opacity-0"
+      }`}
     >
       <style>{`
         @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap");
@@ -1183,19 +1196,38 @@ export default function WesLanding({ onBack }: WesLandingProps) {
         className="pointer-events-none fixed inset-0 z-0 h-full min-h-screen w-full overflow-hidden"
         aria-hidden
       >
-        {alternateBg ? (
+        {meshTheme === "spectrum" ? (
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(61,184,196,0.09),transparent_50%),radial-gradient(ellipse_70%_50%_at_100%_30%,rgba(123,181,49,0.06),transparent_45%),radial-gradient(ellipse_60%_40%_at_0%_80%,rgba(160,75,115,0.05),transparent_40%)]" />
         ) : null}
+        {meshTheme === "ember" ? (
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_110%_85%_at_50%_-18%,rgba(130,32,28,0.2),transparent_55%),radial-gradient(ellipse_75%_55%_at_92%_22%,rgba(90,20,18,0.14),transparent_48%),radial-gradient(ellipse_65%_50%_at_8%_78%,rgba(48,10,10,0.22),transparent_46%),radial-gradient(ellipse_50%_40%_at_50%_100%,rgba(24,6,6,0.35),transparent_50%)]" />
+        ) : null}
         <InteractiveWebBackground
-          alternateBg={alternateBg}
-          className="absolute inset-0 h-full w-full opacity-[0.55]"
+          meshTheme={meshTheme}
+          className={`absolute inset-0 h-full w-full transition-opacity duration-500 ${
+            meshTheme === "ember" ? "opacity-[0.48]" : "opacity-[0.55]"
+          }`}
         />
         <div
           className={`absolute inset-0 transition-opacity duration-500 ${
-            alternateBg ? "opacity-25" : "opacity-[0.18]"
+            meshTheme === "ember"
+              ? "opacity-[0.14]"
+              : meshTheme === "spectrum"
+                ? "opacity-25"
+                : "opacity-[0.18]"
           }`}
           style={{
-            backgroundImage: `
+            backgroundImage:
+              meshTheme === "ember"
+                ? `
+              radial-gradient(1px 1px at 10% 20%, rgba(255,200,190,0.38) 0, transparent 1px),
+              radial-gradient(1px 1px at 72% 55%, rgba(255,170,155,0.28) 0, transparent 1px),
+              radial-gradient(1px 1px at 40% 88%, rgba(240,150,140,0.24) 0, transparent 1px),
+              radial-gradient(1px 1px at 88% 12%, rgba(255,190,175,0.22) 0, transparent 1px),
+              radial-gradient(1px 1px at 25% 65%, rgba(230,130,118,0.2) 0, transparent 1px),
+              radial-gradient(1px 1px at 55% 30%, rgba(220,120,108,0.18) 0, transparent 1px)
+            `
+                : `
               radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.45) 0, transparent 1px),
               radial-gradient(1px 1px at 72% 55%, rgba(255,255,255,0.35) 0, transparent 1px),
               radial-gradient(1px 1px at 40% 88%, rgba(255,255,255,0.3) 0, transparent 1px),
@@ -1207,11 +1239,25 @@ export default function WesLanding({ onBack }: WesLandingProps) {
           }}
         />
         <div
-          className={`pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.034)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:radial-gradient(ellipse_88%_72%_at_48%_38%,black,transparent)] blur-[0.35px] transition-opacity duration-500 ${
-            alternateBg ? "opacity-[0.22]" : "opacity-0"
+          className={`pointer-events-none absolute inset-0 z-0 bg-[size:44px_44px] [mask-image:radial-gradient(ellipse_88%_72%_at_48%_38%,black,transparent)] blur-[0.35px] transition-opacity duration-500 ${
+            meshTheme === "spectrum"
+              ? "bg-[linear-gradient(rgba(255,255,255,0.034)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] opacity-[0.22]"
+              : meshTheme === "ember"
+                ? "bg-[linear-gradient(rgba(220,72,64,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(200,58,52,0.038)_1px,transparent_1px)] opacity-[0.2]"
+                : "opacity-0"
           }`}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/80" />
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/80 transition-opacity duration-500"
+          style={
+            meshTheme === "ember"
+              ? {
+                  backgroundImage:
+                    "linear-gradient(to bottom, transparent 0%, transparent 38%, rgba(16, 5, 5, 0.42) 74%, rgba(0, 0, 0, 0.9) 100%)",
+                }
+              : undefined
+          }
+        />
       </div>
 
       {onBack ? (
@@ -1258,10 +1304,10 @@ export default function WesLanding({ onBack }: WesLandingProps) {
           })}
           <button
             type="button"
-            onClick={() => setAlternateBg((v) => !v)}
+            onClick={() => setMeshTheme((t) => nextPortfolioMeshTheme(t))}
             className="ml-0 inline-flex min-h-[32px] min-w-[32px] items-center justify-center gap-1 rounded-full px-1.5 py-1 text-[0.62rem] font-medium text-neutral-400/95 transition-colors hover:bg-white/[0.07] hover:text-neutral-100 sm:ml-0.5 sm:min-h-0 sm:min-w-0 sm:px-2.5 sm:py-1.5 sm:text-[0.76rem]"
-            aria-pressed={alternateBg}
-            title="Alternar fundo"
+            aria-pressed={meshTheme !== "network"}
+            title={`Tema do fundo: ${portfolioMeshThemeLabel(meshTheme)} — clique para alternar`}
           >
             <Palette className="h-3 w-3 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5" aria-hidden />
             <span className="hidden sm:inline">Mudar fundo</span>
