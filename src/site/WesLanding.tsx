@@ -17,7 +17,7 @@ import {
 } from "react";
 import { BBS_TERMINAL_URL, CONTACT } from "../contact";
 import { InteractiveWebBackground } from "./InteractiveWebBackground";
-import { Portfolio3D } from "./Portfolio3D";
+import { HeroPortfolioVisual } from "./HeroPortfolioVisual";
 import ContactSection from "@/components/contact/ContactSection";
 import Footer from "@/components/contact/Footer";
 import { assetUrl } from "../assetUrl";
@@ -100,14 +100,19 @@ function scrollToSectionId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
 
-const NAV_ITEMS = [
+const NAV_ITEMS: readonly {
+  id: (typeof SECTION_IDS)[number];
+  label: string;
+  /** Rótulo curto no mobile — navbar compacta */
+  shortLabel?: string;
+}[] = [
   { id: "home", label: "Início" },
-  { id: "about", label: "Sobre mim" },
-  { id: "work", label: "Ver Projetos" },
-  { id: "skills", label: "Habilidades" },
-  { id: "education", label: "Educação" },
+  { id: "about", label: "Sobre mim", shortLabel: "Sobre" },
+  { id: "work", label: "Ver Projetos", shortLabel: "Projetos" },
+  { id: "skills", label: "Habilidades", shortLabel: "Skills" },
+  { id: "education", label: "Educação", shortLabel: "Formação" },
   { id: "contact", label: "Contato" },
-] as const;
+];
 
 function ProjectPaginationDots({
   active,
@@ -1220,10 +1225,10 @@ export default function WesLanding({ onBack }: WesLandingProps) {
       ) : null}
 
       <nav
-        className="wes-top-nav fixed top-4 left-1/2 z-50 w-[min(100%,calc(100vw-7rem))] max-w-4xl -translate-x-1/2 px-3 sm:top-6 sm:w-[min(100%,calc(100vw-5rem))]"
+        className="wes-top-nav fixed left-1/2 top-3 z-50 w-[min(100%,calc(100vw-1rem))] max-w-4xl -translate-x-1/2 px-2 sm:top-6 sm:w-[min(100%,calc(100vw-5rem))] sm:px-3 lg:w-[min(100%,calc(100vw-7rem))]"
         aria-label="Navegação principal"
       >
-        <div className="flex flex-wrap items-center justify-center gap-1 rounded-full border border-white/[0.12] bg-white/[0.06] px-1.5 py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-md sm:gap-0 sm:px-2 sm:py-1.5">
+        <div className="flex max-w-full flex-wrap items-center justify-center gap-0.5 rounded-full border border-white/[0.1] bg-white/[0.05] px-1 py-1 shadow-[0_6px_28px_rgba(0,0,0,0.32)] backdrop-blur-md sm:gap-0 sm:border-white/[0.12] sm:bg-white/[0.06] sm:px-2 sm:py-1.5 sm:shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
           {NAV_ITEMS.map((item, i) => {
             const active = activeSection === i;
             return (
@@ -1234,24 +1239,31 @@ export default function WesLanding({ onBack }: WesLandingProps) {
                   e.preventDefault();
                   scrollToSectionId(item.id);
                 }}
-                className={`rounded-full px-2.5 py-1.5 text-[0.7rem] font-medium transition-colors duration-200 sm:px-3 sm:text-[0.78rem] ${
+                className={`rounded-full px-2 py-1 text-[0.62rem] font-medium leading-tight transition-colors duration-200 sm:px-3 sm:py-1.5 sm:text-[0.78rem] ${
                   active
                     ? "bg-white text-neutral-950 shadow-sm"
                     : "text-neutral-200/90 hover:bg-white/[0.08] hover:text-white"
                 }`}
               >
-                {item.label}
+                {item.shortLabel ? (
+                  <>
+                    <span className="lg:hidden">{item.shortLabel}</span>
+                    <span className="hidden lg:inline">{item.label}</span>
+                  </>
+                ) : (
+                  item.label
+                )}
               </a>
             );
           })}
           <button
             type="button"
             onClick={() => setAlternateBg((v) => !v)}
-            className="ml-0.5 inline-flex items-center gap-1 rounded-full px-2 py-1.5 text-[0.68rem] font-medium text-neutral-400/95 transition-colors hover:bg-white/[0.07] hover:text-neutral-100 sm:px-2.5 sm:text-[0.76rem]"
+            className="ml-0 inline-flex min-h-[32px] min-w-[32px] items-center justify-center gap-1 rounded-full px-1.5 py-1 text-[0.62rem] font-medium text-neutral-400/95 transition-colors hover:bg-white/[0.07] hover:text-neutral-100 sm:ml-0.5 sm:min-h-0 sm:min-w-0 sm:px-2.5 sm:py-1.5 sm:text-[0.76rem]"
             aria-pressed={alternateBg}
             title="Alternar fundo"
           >
-            <Palette className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+            <Palette className="h-3 w-3 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5" aria-hidden />
             <span className="hidden sm:inline">Mudar fundo</span>
           </button>
         </div>
@@ -1261,7 +1273,7 @@ export default function WesLanding({ onBack }: WesLandingProps) {
         {/* Hero — duas colunas: texto à esquerda + slot visual à direita (troque o conteúdo por WebGL/3D) */}
         <section
           id="home"
-          className="hero wes-hero w-full scroll-mt-28 text-left pt-[clamp(4.5rem,10vw,6rem)]"
+          className="hero wes-hero w-full scroll-mt-24 text-left max-lg:pt-[clamp(2.6rem,8vw,3.85rem)] lg:scroll-mt-28 lg:pt-[clamp(4.5rem,10vw,6rem)]"
           aria-labelledby="wes-hero-name"
         >
           <div className="hero-container">
@@ -1271,12 +1283,12 @@ export default function WesLanding({ onBack }: WesLandingProps) {
             </p>
             <h1
               id="wes-hero-name"
-              className="wes-hero-title mt-6 max-w-[min(100%,28rem)] text-[clamp(2rem,4.6vw,3.45rem)] leading-[1.1] tracking-[-0.038em] sm:max-w-none md:mt-7 md:text-[clamp(2.1rem,3.8vw,3.5rem)]"
+              className="wes-hero-title mt-4 max-w-[min(100%,28rem)] text-[clamp(1.85rem,5.2vw,3.45rem)] leading-[1.08] tracking-[-0.038em] sm:mt-6 sm:max-w-none sm:text-[clamp(2rem,4.6vw,3.45rem)] md:mt-7 md:text-[clamp(2.1rem,3.8vw,3.5rem)]"
             >
               <span className="wes-hero-name-gradient">Wesley Cruz</span>
             </h1>
             <p
-              className="wes-hero-role mt-6 min-h-[3.15rem] max-w-[min(100%,28rem)] text-[clamp(1.05rem,1.2vw+0.8rem,1.28rem)] leading-[1.5] tracking-[-0.014em] text-neutral-400/95 sm:min-h-[2.85rem] sm:max-w-[32rem] md:mt-7"
+              className="wes-hero-role mt-4 min-h-[2.85rem] max-w-[min(100%,28rem)] text-[clamp(1rem,2.8vw+0.65rem,1.28rem)] leading-[1.45] tracking-[-0.014em] text-neutral-400/95 sm:mt-6 sm:min-h-[2.85rem] sm:max-w-[32rem] sm:text-[clamp(1.05rem,1.2vw+0.8rem,1.28rem)] sm:leading-[1.5] md:mt-7"
               aria-live="polite"
             >
               <span className="inline break-words align-middle font-medium text-neutral-200/88">
@@ -1290,14 +1302,14 @@ export default function WesLanding({ onBack }: WesLandingProps) {
               ) : null}
             </p>
 
-            <div className="mt-11 flex flex-wrap items-center gap-3 md:mt-12 md:gap-3">
+            <div className="mt-8 flex flex-wrap items-center gap-2 sm:mt-11 sm:gap-3 md:mt-12">
               <a
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="wes-hero-social wes-label-mono inline-flex h-10 items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.03] px-[1.15rem] text-[0.78rem] font-medium tracking-[0.03em] text-neutral-300/95 transition-[background-color,border-color,color] duration-200 ease-out hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/18"
+                className="wes-hero-social wes-label-mono inline-flex h-9 min-h-[40px] items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.03] px-3 text-[0.7rem] font-medium tracking-[0.03em] text-neutral-300/95 transition-[background-color,border-color,color] duration-200 ease-out hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/18 sm:h-10 sm:min-h-0 sm:gap-2 sm:px-[1.15rem] sm:text-[0.78rem]"
               >
-                <Github size={16} aria-hidden />
+                <Github size={16} className="h-[15px] w-[15px] sm:h-4 sm:w-4" aria-hidden />
                 GitHub
                 <ExternalLink size={11} className="opacity-35" aria-hidden />
               </a>
@@ -1305,9 +1317,9 @@ export default function WesLanding({ onBack }: WesLandingProps) {
                 href={CONTACT.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="wes-hero-social wes-label-mono inline-flex h-10 items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.03] px-[1.15rem] text-[0.78rem] font-medium tracking-[0.03em] text-neutral-300/95 transition-[background-color,border-color,color] duration-200 ease-out hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/18"
+                className="wes-hero-social wes-label-mono inline-flex h-9 min-h-[40px] items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.03] px-3 text-[0.7rem] font-medium tracking-[0.03em] text-neutral-300/95 transition-[background-color,border-color,color] duration-200 ease-out hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/18 sm:h-10 sm:min-h-0 sm:gap-2 sm:px-[1.15rem] sm:text-[0.78rem]"
               >
-                <Linkedin size={16} aria-hidden />
+                <Linkedin size={16} className="h-[15px] w-[15px] sm:h-4 sm:w-4" aria-hidden />
                 LinkedIn
                 <ExternalLink size={11} className="opacity-35" aria-hidden />
               </a>
@@ -1315,24 +1327,23 @@ export default function WesLanding({ onBack }: WesLandingProps) {
                 href={BBS_TERMINAL_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="wes-hero-social wes-label-mono inline-flex h-10 items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.03] px-[1.15rem] text-[0.78rem] font-medium tracking-[0.03em] text-neutral-300/95 transition-[background-color,border-color,color] duration-200 ease-out hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/18"
+                className="wes-hero-social wes-label-mono inline-flex h-9 min-h-[40px] items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.03] px-3 text-[0.68rem] font-medium tracking-[0.03em] text-neutral-300/95 transition-[background-color,border-color,color] duration-200 ease-out hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/18 sm:h-10 sm:min-h-0 sm:gap-2 sm:px-[1.15rem] sm:text-[0.78rem]"
+                title="Portfolio BBS"
               >
-                <Globe size={16} aria-hidden />
-                Portfolio BBS
+                <Globe size={16} className="h-[15px] w-[15px] sm:h-4 sm:w-4" aria-hidden />
+                <span className="inline sm:hidden">BBS</span>
+                <span className="hidden sm:inline">Portfolio BBS</span>
                 <ExternalLink size={11} className="opacity-35" aria-hidden />
               </a>
             </div>
           </div>
 
-          <div className="order-2 flex w-full min-w-0 justify-center self-stretch lg:order-2 lg:justify-end lg:pl-2 xl:pl-4">
+          <div className="order-2 hidden w-full min-w-0 justify-center self-stretch lg:order-2 lg:flex lg:justify-end lg:pl-2 xl:pl-4">
             <div
               className="wes-hero-visual-slot relative flex w-full min-w-0 flex-col items-stretch lg:max-w-none lg:items-end"
               data-wes-hero-visual=""
             >
-              <div className="hero-interact">
-                <span>Interaja aqui ↓</span>
-              </div>
-              <Portfolio3D />
+              <HeroPortfolioVisual />
             </div>
           </div>
           </div>

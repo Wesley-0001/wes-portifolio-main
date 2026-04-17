@@ -64,13 +64,21 @@ body,
   }
 }
 
-/* WesLanding — hero: viewport inteira, conteúdo centralizado (grid no fundo: z-index no JSX) */
+/* WesLanding — hero: viewport inteira no desktop; no mobile só tipografia (sem slot visual) */
 .wes-landing-root section.hero.wes-hero {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+}
+
+@media (max-width: 1023px) {
+  .wes-landing-root section.hero.wes-hero {
+    min-height: min(92svh, 880px);
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 .wes-landing-root .hero-container {
@@ -88,8 +96,11 @@ body,
 @media (max-width: 1023px) {
   .wes-landing-root .hero-container {
     grid-template-columns: 1fr;
-    padding-top: clamp(4.25rem, 10vw, 5.5rem);
-    padding-bottom: 2.5rem;
+    align-items: start;
+    gap: 0;
+    row-gap: 0;
+    padding-top: clamp(2.25rem, 7vw, 3.25rem);
+    padding-bottom: clamp(3.5rem, 12vw, 5.5rem);
   }
 }
 
@@ -103,6 +114,12 @@ body,
 .wes-landing-root .wes-hero-text-col {
   padding-top: 0.125rem;
   padding-bottom: 0.75rem;
+}
+
+@media (max-width: 1023px) {
+  .wes-landing-root .wes-hero-text-col {
+    padding-bottom: clamp(0.5rem, 2vw, 1rem);
+  }
 }
 
 .wes-landing-root .wes-hero-text-col .wes-hero-title {
@@ -225,7 +242,32 @@ body,
   background: transparent;
 }
 
-/* Mobile: 3D abaixo do texto, centrado */
+/* Fallback estático (mobile): mesma caixa do canvas, sem WebGL */
+.wes-landing-root .wes-hero-visual-slot .portfolio-3d-fallback-mount {
+  pointer-events: none;
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  overflow: hidden;
+  border-radius: 12px;
+  background: transparent;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 24px 48px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.wes-landing-root .wes-hero-visual-slot .portfolio-3d-fallback-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 42%;
+}
+
+/* Mobile: 3D abaixo do texto, centrado (mesmo peso visual do palco desktop) */
 @media (max-width: 1023px) {
   .wes-landing-root .wes-hero-visual-slot .wes-portfolio-3d-shell {
     max-width: min(100%, 300px);
@@ -250,6 +292,14 @@ body,
   }
 
   .wes-landing-root .wes-hero-visual-slot #portfolio-3d {
+    width: 100%;
+    max-width: none;
+    max-height: min(58vh, 520px);
+    aspect-ratio: 1;
+    min-height: 0;
+  }
+
+  .wes-landing-root .wes-hero-visual-slot .portfolio-3d-fallback-mount {
     width: 100%;
     max-width: none;
     max-height: min(58vh, 520px);
@@ -352,12 +402,30 @@ body,
 @media (max-width: 900px) {
   .wes-landing-root section.about .about-content {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: clamp(1.75rem, 5vw, 2.5rem);
   }
 
   .wes-landing-root section.about .about-card {
-    max-width: 320px;
-    margin: 0 auto;
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0.65rem;
+    border-radius: 1rem;
+  }
+
+  /* Retrato amplo na About — única foto no fluxo mobile */
+  .wes-landing-root section.about .about-card img {
+    width: 100%;
+    height: auto;
+    max-height: min(15.5rem, 52vw);
+    aspect-ratio: 16 / 9;
+    border-radius: 0.65rem;
+    object-fit: cover;
+    object-position: center 18%;
+  }
+
+  .wes-landing-root section.about .about-header {
+    margin-bottom: clamp(2rem, 6vw, 2.75rem);
   }
 }
 

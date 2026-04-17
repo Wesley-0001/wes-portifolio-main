@@ -19,12 +19,12 @@ export type Project = {
 const projectsData: Project[] = [
   {
     id: "wes-portfolio",
-    title: "wes — portfolio",
+    title: "bbs://terminal",
     description:
       "terminal-first interface. projects, stack, contact — minimal product surface.",
     category: "web",
     tags: ["PROJETO REAL", "REACT", "VITE"],
-    coverImage: "/screenshots/wes-portfolio.jpg",
+    coverImage: "/screenshots/BBSgif.gif",
     link: CONTACT_SITE_URL,
     status: "live",
   },
