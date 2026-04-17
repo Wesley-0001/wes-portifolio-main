@@ -1,4 +1,5 @@
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Code2,
@@ -6,7 +7,9 @@ import {
   Github,
   Globe,
   Linkedin,
+  Menu,
   Palette,
+  X,
 } from "lucide-react";
 import {
   useEffect,
@@ -25,6 +28,7 @@ import { InteractiveWebBackground } from "./InteractiveWebBackground";
 import { HeroPortfolioVisual } from "./HeroPortfolioVisual";
 import ContactSection from "@/components/contact/ContactSection";
 import Footer from "@/components/contact/Footer";
+import { useScrollReveal } from "../hooks/useScrollReveal";
 import { assetUrl } from "../assetUrl";
 import { projects, type Project } from "../data/projects";
 import { technologies, type Technology } from "../data/techShowcase";
@@ -105,6 +109,71 @@ function scrollToSectionId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
 
+function WesMobileNavPanel({
+  open,
+  onClose,
+  onNavigate,
+  meshTheme,
+  onCycleMeshTheme,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onNavigate: (id: string) => void;
+  meshTheme: PortfolioMeshTheme;
+  onCycleMeshTheme: () => void;
+}) {
+  if (!open) return null;
+
+  return (
+    <>
+      <button
+        type="button"
+        className="fixed inset-0 z-[55] cursor-default bg-black/55 backdrop-blur-[2px] lg:hidden"
+        aria-label="Fechar menu"
+        onClick={onClose}
+      />
+      <div
+        id="wes-mobile-nav-panel"
+        className="fixed right-4 top-[4.25rem] z-[60] max-h-[min(72vh,540px)] w-[min(calc(100vw-2rem),19rem)] overflow-y-auto overscroll-contain rounded-[1.35rem] border border-white/[0.1] bg-[#0a0c12]/95 py-3 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl lg:hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu de navegação"
+      >
+        <nav className="flex flex-col px-1 py-1" aria-label="Seções do portfólio">
+          {NAV_ITEMS.map((item) => (
+            <a
+              key={item.id}
+              href={`#${item.id}`}
+              className="rounded-xl px-4 py-3.5 text-[0.98rem] font-medium tracking-[-0.02em] text-neutral-100/95 transition-colors hover:bg-white/[0.06] active:bg-white/[0.08]"
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate(item.id);
+              }}
+            >
+              {item.label}
+            </a>
+          ))}
+          <button
+            type="button"
+            className="mt-1 flex w-full items-center gap-2.5 rounded-xl border-t border-white/[0.06] px-4 py-3.5 pt-4 text-left text-[0.95rem] font-medium text-neutral-300/95 transition-colors hover:bg-white/[0.05]"
+            onClick={() => {
+              onCycleMeshTheme();
+              onClose();
+            }}
+            aria-pressed={meshTheme !== "network"}
+          >
+            <Palette className="h-4 w-4 shrink-0 opacity-85" aria-hidden />
+            Mudar fundo
+            <span className="ml-auto wes-label-mono text-[0.65rem] font-medium tracking-wide text-neutral-500">
+              {portfolioMeshThemeLabel(meshTheme)}
+            </span>
+          </button>
+        </nav>
+      </div>
+    </>
+  );
+}
+
 const NAV_ITEMS: readonly {
   id: (typeof SECTION_IDS)[number];
   label: string;
@@ -132,7 +201,7 @@ function ProjectPaginationDots({
 
   return (
     <div
-      className="mt-8 flex items-center justify-center gap-2.5"
+      className="mt-8 flex items-center justify-center gap-2.5 max-md:mt-10 max-md:gap-3.5"
       role="tablist"
       aria-label="Projetos em destaque"
     >
@@ -169,6 +238,76 @@ function projectCoverImageClass(projectId: string): string {
     return "origin-center scale-[1.11] motion-safe:group-hover:!scale-[1.138]";
   }
   return "";
+}
+
+/** Avanço automático do carrossel "Projetos em destaque" */
+const FEATURED_CAROUSEL_AUTOPLAY_MS = 4000;
+/** Transição entre slides centrais — opacity + scale (+ blur leve na saída) */
+const FEATURED_CAROUSEL_TRANSITION_MS = 450;
+/** Atraso do bloco de texto (tags, título, descrição, CTA) após o início da troca do slide */
+const FEATURED_CAROUSEL_TEXT_DELAY_MS = 125;
+/** Entrada do texto após o atraso — encaixa com o fim da animação do card (~450ms) */
+const FEATURED_CAROUSEL_TEXT_ENTER_MS = 320;
+
+function useFeaturedCarouselSlidePair(
+  active: number,
+  projectCount: number,
+  reducedMotion: boolean
+): { from: number; to: number } | null {
+  const committedRef = useRef(active);
+  const pairRef = useRef<{ from: number; to: number } | null>(null);
+  const [pair, setPair] = useState<{ from: number; to: number } | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    pairRef.current = pair;
+  }, [pair]);
+
+  useEffect(() => {
+    if (reducedMotion || projectCount <= 1) {
+      if (timerRef.current != null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      committedRef.current = active;
+      setPair(null);
+      return;
+    }
+
+    if (active === committedRef.current) {
+      return;
+    }
+
+    if (timerRef.current != null) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
+    const mid = pairRef.current;
+    let from = committedRef.current;
+    if (mid && active !== mid.to) {
+      from = mid.to;
+      committedRef.current = mid.to;
+    }
+
+    const next = { from, to: active };
+    setPair(next);
+
+    timerRef.current = window.setTimeout(() => {
+      committedRef.current = next.to;
+      setPair(null);
+      timerRef.current = null;
+    }, FEATURED_CAROUSEL_TRANSITION_MS);
+
+    return () => {
+      if (timerRef.current != null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [active, projectCount, reducedMotion]);
+
+  return pair;
 }
 
 function projectCoverClass(id: string): string {
@@ -276,6 +415,91 @@ function WorkFeaturedCarousel({
   onSelect: (i: number) => void;
 }) {
   const n = projects.length;
+
+  const [carouselHovered, setCarouselHovered] = useState(false);
+  const [docHidden, setDocHidden] = useState(
+    () =>
+      typeof document !== "undefined" &&
+      document.visibilityState === "hidden"
+  );
+  const [supportsHoverPause, setSupportsHoverPause] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(hover: hover)").matches
+      : false
+  );
+  const [carouselReducedMotion, setCarouselReducedMotion] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false
+  );
+  /** Índice exibido no bloco de texto — atrás do `active` para acompanhar a animação do card */
+  const [textActive, setTextActive] = useState(active);
+  const textDeferTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const onVis = () =>
+      setDocHidden(document.visibilityState === "hidden");
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(hover: hover)");
+    const sync = () => setSupportsHoverPause(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setCarouselReducedMotion(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (textDeferTimerRef.current != null) {
+      clearTimeout(textDeferTimerRef.current);
+      textDeferTimerRef.current = null;
+    }
+    if (carouselReducedMotion || n <= 1) {
+      setTextActive(active);
+      return;
+    }
+    if (textActive === active) {
+      return;
+    }
+    textDeferTimerRef.current = window.setTimeout(() => {
+      setTextActive(active);
+      textDeferTimerRef.current = null;
+    }, FEATURED_CAROUSEL_TEXT_DELAY_MS);
+    return () => {
+      if (textDeferTimerRef.current != null) {
+        clearTimeout(textDeferTimerRef.current);
+        textDeferTimerRef.current = null;
+      }
+    };
+  }, [active, carouselReducedMotion, n, textActive]);
+
+  const slidePair = useFeaturedCarouselSlidePair(
+    active,
+    n,
+    carouselReducedMotion
+  );
+
+  const pauseForHover = supportsHoverPause && carouselHovered;
+  const autoplayPaused = n <= 1 || docHidden || pauseForHover;
+
+  useEffect(() => {
+    if (autoplayPaused) return;
+    const id = window.setTimeout(() => {
+      onSelect((active + 1) % n);
+    }, FEATURED_CAROUSEL_AUTOPLAY_MS);
+    return () => window.clearTimeout(id);
+  }, [active, autoplayPaused, n, onSelect]);
+
   const prev = () => onSelect((active - 1 + n) % n);
   const next = () => onSelect((active + 1) % n);
   const ix = (delta: number) => (active + delta + n * 100) % n;
@@ -287,6 +511,17 @@ function WorkFeaturedCarousel({
   const inProgress = pCenter.status === "in_progress";
   const projectHref = pCenter.link?.trim();
   const canOpenProject = Boolean(projectHref) && !inProgress;
+  const pText = projects[textActive];
+  const inProgressText = pText.status === "in_progress";
+  const projectHrefText = pText.link?.trim();
+  const canOpenProjectText = Boolean(projectHrefText) && !inProgressText;
+  const pIncoming = slidePair ? projects[slidePair.to] : pCenter;
+  const incomingHref = pIncoming.link?.trim();
+  const canOpenIncoming =
+    Boolean(incomingHref) && pIncoming.status !== "in_progress";
+  /** Detalhe de universo (terminal) — só no projeto BBS; não compete com o CTA */
+  const showBbsTerminalUniverseHint =
+    pText.id === "wes-portfolio" && !inProgressText;
 
   const touchStartX = useRef<number | null>(null);
 
@@ -311,9 +546,11 @@ function WorkFeaturedCarousel({
       role="region"
       aria-roledescription="carousel"
       aria-label="Projetos em destaque"
+      onMouseEnter={() => setCarouselHovered(true)}
+      onMouseLeave={() => setCarouselHovered(false)}
     >
       <div
-        className="relative px-2 pb-1 pt-0 [touch-action:pan-y] sm:px-14 md:px-[4.25rem]"
+        className="relative px-0 pb-1 pt-0 [touch-action:pan-y] sm:px-14 md:px-[4.25rem]"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
@@ -321,7 +558,7 @@ function WorkFeaturedCarousel({
           type="button"
           onClick={prev}
           disabled={n <= 1}
-          className="absolute left-0 top-1/2 z-30 flex h-11 min-h-[44px] w-11 min-w-[44px] -translate-y-1/2 items-center justify-center rounded-full border border-black/10 bg-white text-neutral-900 shadow-[0_8px_24px_rgba(0,0,0,0.35)] transition hover:bg-neutral-100 active:scale-95 disabled:pointer-events-none disabled:opacity-0 sm:left-0 sm:h-10 sm:min-h-0 sm:w-10 sm:min-w-0"
+          className="absolute left-0 top-1/2 z-30 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-black/10 bg-white text-neutral-900 shadow-[0_8px_24px_rgba(0,0,0,0.35)] transition hover:bg-neutral-100 active:scale-95 disabled:pointer-events-none disabled:opacity-0 md:flex md:left-0"
           aria-label="Projeto anterior"
         >
           <ChevronLeft className="h-5 w-5" aria-hidden />
@@ -330,7 +567,7 @@ function WorkFeaturedCarousel({
           type="button"
           onClick={next}
           disabled={n <= 1}
-          className="absolute right-0 top-1/2 z-30 flex h-11 min-h-[44px] w-11 min-w-[44px] -translate-y-1/2 items-center justify-center rounded-full border border-black/10 bg-white text-neutral-900 shadow-[0_8px_24px_rgba(0,0,0,0.35)] transition hover:bg-neutral-100 active:scale-95 disabled:pointer-events-none disabled:opacity-0 sm:right-0 sm:h-10 sm:min-h-0 sm:w-10 sm:min-w-0"
+          className="absolute right-0 top-1/2 z-30 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-black/10 bg-white text-neutral-900 shadow-[0_8px_24px_rgba(0,0,0,0.35)] transition hover:bg-neutral-100 active:scale-95 disabled:pointer-events-none disabled:opacity-0 md:flex md:right-0"
           aria-label="Próximo projeto"
         >
           <ChevronRight className="h-5 w-5" aria-hidden />
@@ -348,28 +585,71 @@ function WorkFeaturedCarousel({
             </div>
           </button>
 
-          <div className="relative z-20 w-full max-w-[min(92vw,600px)] shrink-0 transition duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]">
-            <div className="aspect-[16/10] w-full">
-              {canOpenProject ? (
-                <a
-                  href={projectHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group block h-full w-full cursor-pointer rounded-[1.35rem] outline-none transition duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_22px_56px_rgba(0,0,0,0.42),0_0_36px_rgba(56,189,248,0.09)] focus-visible:ring-2 focus-visible:ring-emerald-400/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050508] motion-safe:[&_.bbs-terminal-preview-root]:origin-center motion-safe:[&_img]:origin-center motion-safe:[&_.bbs-terminal-preview-root]:transition-transform motion-safe:[&_img]:transition-transform motion-safe:[&_.bbs-terminal-preview-root]:duration-500 motion-safe:[&_img]:duration-500 motion-safe:[&_.bbs-terminal-preview-root]:ease-out motion-safe:[&_img]:ease-out motion-safe:group-hover:[&_.bbs-terminal-preview-root]:scale-[1.028] motion-safe:group-hover:[&_img]:scale-[1.025]"
-                  aria-label={`Abrir projeto: ${pCenter.title}`}
-                >
-                  <div className="h-full w-full transition duration-300 group-hover:opacity-[0.98]">
-                    <ProjectSlideCover
-                      project={pCenter}
-                      emphasis="center"
-                      rootClassName="transition duration-300 group-hover:border-emerald-400/28 group-hover:shadow-[0_0_36px_rgba(52,211,153,0.12)]"
-                    />
+          <div className="relative z-20 w-full max-w-[min(94vw,640px)] shrink-0 transition duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] md:max-w-[min(92vw,600px)]">
+            <div
+              className={`aspect-[4/3] w-full max-md:min-h-[13.5rem] md:aspect-[16/10] md:min-h-0 ${
+                slidePair
+                  ? "relative overflow-hidden rounded-[1.35rem]"
+                  : ""
+              }`}
+            >
+              {!slidePair ? (
+                canOpenProject ? (
+                  <a
+                    href={projectHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block h-full w-full cursor-pointer rounded-[1.35rem] outline-none transition duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_22px_56px_rgba(0,0,0,0.42),0_0_36px_rgba(56,189,248,0.09)] focus-visible:ring-2 focus-visible:ring-emerald-400/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050508] motion-safe:[&_.bbs-terminal-preview-root]:origin-center motion-safe:[&_img]:origin-center motion-safe:[&_.bbs-terminal-preview-root]:transition-transform motion-safe:[&_img]:transition-transform motion-safe:[&_.bbs-terminal-preview-root]:duration-500 motion-safe:[&_img]:duration-500 motion-safe:[&_.bbs-terminal-preview-root]:ease-out motion-safe:[&_img]:ease-out motion-safe:group-hover:[&_.bbs-terminal-preview-root]:scale-[1.028] motion-safe:group-hover:[&_img]:scale-[1.025]"
+                    aria-label={`Abrir projeto: ${pCenter.title}`}
+                  >
+                    <div className="h-full w-full transition duration-300 group-hover:opacity-[0.98]">
+                      <ProjectSlideCover
+                        project={pCenter}
+                        emphasis="center"
+                        rootClassName="transition duration-300 group-hover:border-emerald-400/28 group-hover:shadow-[0_0_36px_rgba(52,211,153,0.12)]"
+                      />
+                    </div>
+                  </a>
+                ) : (
+                  <div className="h-full w-full">
+                    <ProjectSlideCover project={pCenter} emphasis="center" />
                   </div>
-                </a>
+                )
               ) : (
-                <div className="h-full w-full">
-                  <ProjectSlideCover project={pCenter} emphasis="center" />
-                </div>
+                <>
+                  <div className="pointer-events-none absolute inset-0 z-[1] wes-carousel-layer-exit">
+                    <div className="h-full w-full">
+                      <ProjectSlideCover
+                        project={projects[slidePair.from]}
+                        emphasis="center"
+                      />
+                    </div>
+                  </div>
+                  {canOpenIncoming ? (
+                    <a
+                      href={incomingHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group absolute inset-0 z-[2] block h-full w-full cursor-pointer rounded-[1.35rem] outline-none transition duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_22px_56px_rgba(0,0,0,0.42),0_0_36px_rgba(56,189,248,0.09)] focus-visible:ring-2 focus-visible:ring-emerald-400/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050508] motion-safe:[&_.bbs-terminal-preview-root]:origin-center motion-safe:[&_img]:origin-center motion-safe:[&_.bbs-terminal-preview-root]:transition-transform motion-safe:[&_img]:transition-transform motion-safe:[&_.bbs-terminal-preview-root]:duration-500 motion-safe:[&_img]:duration-500 motion-safe:[&_.bbs-terminal-preview-root]:ease-out motion-safe:[&_img]:ease-out motion-safe:group-hover:[&_.bbs-terminal-preview-root]:scale-[1.028] motion-safe:group-hover:[&_img]:scale-[1.025] wes-carousel-layer-enter"
+                      aria-label={`Abrir projeto: ${pIncoming.title}`}
+                    >
+                      <div className="h-full w-full transition duration-300 group-hover:opacity-[0.98]">
+                        <ProjectSlideCover
+                          project={pIncoming}
+                          emphasis="center"
+                          rootClassName="transition duration-300 group-hover:border-emerald-400/28 group-hover:shadow-[0_0_36px_rgba(52,211,153,0.12)]"
+                        />
+                      </div>
+                    </a>
+                  ) : (
+                    <div className="absolute inset-0 z-[2] h-full w-full wes-carousel-layer-enter">
+                      <ProjectSlideCover
+                        project={pIncoming}
+                        emphasis="center"
+                      />
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -387,53 +667,56 @@ function WorkFeaturedCarousel({
         </div>
       </div>
 
-      <div className="mx-auto mt-9 max-w-2xl px-1 text-center sm:mt-10">
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {pCenter.tags.map((tag) => (
-            <span
-              key={tag}
-              className="wes-label-mono rounded-full border border-white/[0.1] bg-white/[0.04] px-3 py-1 text-[0.62rem] font-medium tracking-[0.12em] text-neutral-300/95"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-        <h3 className="mt-5 text-2xl font-semibold tracking-tight text-white sm:text-[1.75rem]">
-          {pCenter.title}
-        </h3>
-        <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-neutral-500 md:text-[0.95rem]">
-          {pCenter.description}
-        </p>
-        <div className="mt-8 flex flex-col items-center gap-2 sm:gap-2.5">
-          {canOpenProject ? (
-            <a
-              href={projectHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-lg border border-white/[0.09] bg-white/[0.02] px-3.5 py-2 text-[0.8125rem] font-medium text-neutral-100/92 shadow-none transition duration-300 ease-out hover:-translate-y-0.5 hover:border-emerald-400/32 hover:bg-emerald-400/[0.05] hover:text-white hover:opacity-100 hover:shadow-[0_0_28px_rgba(52,211,153,0.14)] active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400/35"
-            >
-              Abrir projeto ↗
-            </a>
-          ) : inProgress ? (
-            <p className="wes-label-mono text-[0.72rem] text-neutral-500">
-              {pCenter.accessLabel ?? "Disponível em breve"}
-            </p>
-          ) : (
-            <p className="wes-label-mono text-[0.72rem] text-neutral-600">
-              Acesso pelo terminal:{" "}
-              <span className="text-neutral-400">
-                open {openCode(pCenter.id)}
+      <div className="mx-auto mt-9 max-w-2xl px-1 text-center sm:mt-10 md:px-1">
+        <div
+          key={textActive}
+          className={
+            carouselReducedMotion ? "" : "wes-carousel-detail-enter"
+          }
+        >
+          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-2">
+            {pText.tags.map((tag) => (
+              <span
+                key={`${textActive}-${tag}`}
+                className="wes-label-mono rounded-full border border-white/[0.1] bg-white/[0.04] px-3 py-1.5 text-[0.65rem] font-medium tracking-[0.12em] text-neutral-300/95 max-md:px-3.5 md:py-1 md:text-[0.62rem]"
+              >
+                {tag}
               </span>
-            </p>
-          )}
-          {canOpenProject ? (
-            <p className="wes-label-mono max-w-md text-center text-[0.65rem] leading-relaxed text-neutral-600">
-              Acesso pelo terminal:{" "}
-              <span className="text-neutral-500">
-                open {openCode(pCenter.id)}
-              </span>
-            </p>
-          ) : null}
+            ))}
+          </div>
+          <h3 className="mt-5 text-[1.45rem] font-semibold tracking-tight text-white max-md:leading-snug sm:text-[1.75rem]">
+            {pText.title}
+          </h3>
+          <p className="mx-auto mt-4 max-w-xl px-1 text-[0.95rem] leading-relaxed text-neutral-400/95 max-md:text-base md:px-0 md:text-[0.95rem] md:text-neutral-500">
+            {pText.description}
+          </p>
+          <div className="mt-8 flex flex-col items-center gap-2 sm:gap-2.5">
+            {canOpenProjectText ? (
+              <a
+                href={projectHrefText}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-lg border border-white/[0.09] bg-white/[0.02] px-3.5 py-2 text-[0.8125rem] font-medium text-neutral-100/92 shadow-none transition duration-300 ease-out hover:-translate-y-0.5 hover:border-emerald-400/32 hover:bg-emerald-400/[0.05] hover:text-white hover:opacity-100 hover:shadow-[0_0_28px_rgba(52,211,153,0.14)] active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400/35"
+              >
+                Abrir projeto ↗
+              </a>
+            ) : inProgressText ? (
+              <p className="wes-label-mono text-[0.72rem] text-neutral-500">
+                {pText.accessLabel ?? "Disponível em breve"}
+              </p>
+            ) : null}
+            {showBbsTerminalUniverseHint ? (
+              <p
+                className="wes-label-mono hidden max-w-md text-center text-[0.58rem] leading-snug text-neutral-500/45 md:block md:text-[0.6rem] md:leading-relaxed"
+                aria-hidden="true"
+              >
+                via terminal:{" "}
+                <span className="text-neutral-500/55">
+                  open {openCode(pText.id)}
+                </span>
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -577,12 +860,6 @@ function WesSkillsShowcase() {
       ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
       : false
   );
-  const [skillsInView, setSkillsInView] = useState(() =>
-    typeof window !== "undefined"
-      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      : false
-  );
-  const skillsSectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -591,27 +868,6 @@ function WesSkillsShowcase() {
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
-
-  useEffect(() => {
-    const el = skillsSectionRef.current;
-    if (!el) return;
-    if (reducedMotion) {
-      setSkillsInView(true);
-      return;
-    }
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) setSkillsInView(true);
-      },
-      {
-        root: null,
-        rootMargin: "100px 0px 120px 0px",
-        threshold: [0, 0.08, 0.18],
-      }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [reducedMotion]);
 
   const swapMs = reducedMotion ? 0 : 320;
 
@@ -634,11 +890,8 @@ function WesSkillsShowcase() {
 
   return (
     <section
-      ref={skillsSectionRef}
       id="skills"
-      className={`wes-skills-section relative isolate mt-12 min-h-[min(92svh,880px)] scroll-mt-28 border-t border-white/[0.05] pt-[clamp(5rem,11vw,7.5rem)] pb-[clamp(5.5rem,12vw,9rem)] md:mt-16 md:pt-[clamp(6rem,12vw,8.5rem)] md:pb-[clamp(6rem,11vw,9.5rem)] ${
-        skillsInView ? "wes-skills-section--inview" : ""
-      }`}
+      className="wes-skills-section relative isolate mt-12 min-h-0 scroll-mt-28 border-t border-white/[0.05] pt-[clamp(4.5rem,12vw,7.5rem)] pb-[clamp(5rem,14vw,9rem)] max-lg:min-h-[min(88svh,760px)] md:mt-16 md:min-h-[min(92svh,880px)] md:pt-[clamp(6rem,12vw,8.5rem)] md:pb-[clamp(6rem,11vw,9.5rem)]"
       aria-labelledby="wes-skills-title"
     >
       <div
@@ -646,23 +899,23 @@ function WesSkillsShowcase() {
         aria-hidden
       />
       <div className="wes-skills-inner relative z-10 -mx-[clamp(0.75rem,4vw,2.5rem)] px-[clamp(1rem,4vw,2.25rem)] sm:-mx-[clamp(1rem,5vw,3rem)] sm:px-[clamp(1.25rem,4.5vw,3rem)] lg:-mx-[clamp(1.5rem,6vw,4.5rem)] lg:px-[clamp(1.75rem,5vw,4rem)]">
-      <header className="wes-skills-header relative z-10 mx-auto max-w-[min(100%,44rem)] text-center">
-        <p className="wes-skills-eyebrow wes-label-mono text-[0.62rem] font-semibold uppercase tracking-[0.38em] text-neutral-500">
+      <header className="wes-skills-header relative z-10 mx-auto max-w-[min(100%,44rem)] px-1 text-center max-lg:px-2">
+        <p className="wes-skills-eyebrow wes-label-mono is-reveal wes-reveal-s1 text-[0.62rem] font-semibold uppercase tracking-[0.38em] text-neutral-500">
           Tecnologias que uso
         </p>
         <h2
           id="wes-skills-title"
-          className="mt-4 text-[clamp(1.9rem,4.2vw,2.75rem)] font-semibold tracking-[-0.038em] text-white"
+          className="is-reveal wes-reveal-s2 mt-4 text-[clamp(1.75rem,5vw,2.75rem)] font-semibold tracking-[-0.038em] text-white max-lg:leading-tight"
         >
           Habilidades e Tecnologias
         </h2>
-        <p className="wes-skills-subtitle mx-auto mt-5 max-w-[36rem] text-[0.9375rem] leading-snug text-neutral-500 md:mt-6 md:text-[0.97rem] md:leading-relaxed">
+        <p className="wes-skills-subtitle is-reveal wes-reveal-s3 mx-auto mt-5 max-w-[36rem] text-[0.98rem] leading-relaxed text-neutral-400/95 max-lg:mt-6 max-lg:max-w-[22rem] md:mt-6 md:text-[0.97rem] md:text-neutral-500 md:leading-relaxed">
           Aqui estão algumas das tecnologias que tenho experiência e conhecimento.
           Clique em cada uma delas para ver mais detalhes.
         </p>
       </header>
 
-      <div className="wes-skills-grid relative z-10 mt-[clamp(3.25rem,7.5vw,5rem)] w-full min-w-0">
+      <div className="wes-skills-grid is-reveal wes-reveal-s4 relative z-10 mt-[clamp(2.75rem,8vw,5rem)] w-full min-w-0 max-lg:mt-[clamp(3rem,9vw,4.5rem)]">
         {/* Palco — vitrine + faixa de ícones */}
         <div
           className="flex w-full min-w-0 flex-col items-center justify-center justify-self-center xl:justify-self-stretch"
@@ -674,7 +927,7 @@ function WesSkillsShowcase() {
               reducedMotion ? "" : "wes-skills-float-wrap"
             }`}
           >
-            <div className="wes-skills-stage relative w-full overflow-hidden rounded-[2.5rem] px-7 pb-6 pt-8 sm:rounded-[2.65rem] sm:px-9 sm:pb-7 sm:pt-9 md:px-10 md:pb-7 md:pt-9">
+            <div className="wes-skills-stage relative w-full overflow-hidden rounded-[1.85rem] px-6 pb-6 pt-7 sm:rounded-[2.65rem] sm:px-9 sm:pb-7 sm:pt-9 md:px-10 md:pb-7 md:pt-9">
               <div
                 className="pointer-events-none absolute inset-0 z-0 rounded-[inherit] opacity-[0.14]"
                 style={{
@@ -685,7 +938,7 @@ function WesSkillsShowcase() {
               />
               <div className="relative z-[1] flex min-h-0 w-full flex-1 flex-col justify-between">
                 <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-center pb-2">
-                  <div className="group wes-skills-hero-wrap relative z-[1] flex h-[132px] w-[132px] shrink-0 items-center justify-center sm:h-[140px] sm:w-[140px]">
+                  <div className="group wes-skills-hero-wrap relative z-[1] flex h-[148px] w-[148px] shrink-0 items-center justify-center md:h-[140px] md:w-[140px]">
                     <div
                       className={`flex h-full w-full items-center justify-center rounded-[1.35rem] p-[1.35rem] shadow-[0_16px_48px_rgba(0,0,0,0.45)] wes-skills-hero-surface ${
                         detailVisible
@@ -717,7 +970,7 @@ function WesSkillsShowcase() {
                   role="tablist"
                   aria-label="Selecionar tecnologia"
                 >
-                  <div className="wes-skills-tab-row mx-auto flex w-full max-w-full flex-nowrap items-center justify-center gap-2.5 overflow-x-auto overflow-y-visible py-1.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-3 md:gap-3.5 [&::-webkit-scrollbar]:hidden">
+                  <div className="wes-skills-tab-row mx-auto flex w-full max-w-full flex-nowrap items-center justify-center gap-3 overflow-x-auto overflow-y-visible py-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-3 md:gap-3.5 [&::-webkit-scrollbar]:hidden">
                     {technologies.map((t) => {
                       const isOn = t.id === selected.id;
                       return (
@@ -729,7 +982,7 @@ function WesSkillsShowcase() {
                           aria-controls="wes-skills-detail"
                           id={`wes-skill-tab-${t.id}`}
                           onClick={() => selectTech(t)}
-                          className={`wes-skills-tab flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.65rem] border border-transparent bg-transparent transition-[opacity,transform,box-shadow,background-color,border-color,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400/35 sm:h-10 sm:w-10 ${
+                          className={`wes-skills-tab flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.75rem] border border-transparent bg-transparent transition-[opacity,transform,box-shadow,background-color,border-color,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400/35 sm:h-10 sm:w-10 sm:rounded-[0.65rem] ${
                             isOn
                               ? "wes-skills-tab--active opacity-100"
                               : "opacity-[0.34] hover:border-white/[0.06] hover:bg-white/[0.04] hover:opacity-[0.58] active:opacity-[0.72]"
@@ -830,9 +1083,11 @@ function WesSkillsShowcase() {
 }
 
 export default function WesLanding({ onBack }: WesLandingProps) {
+  const landingRootRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const typedRole = useHeroTypedRoles(HERO_ROLES, !prefersReducedMotion);
 
@@ -843,6 +1098,26 @@ export default function WesLanding({ onBack }: WesLandingProps) {
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
+
+  useScrollReveal(landingRootRef, prefersReducedMotion);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileNavOpen]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileNavOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileNavOpen]);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
@@ -863,6 +1138,11 @@ export default function WesLanding({ onBack }: WesLandingProps) {
   const [meshTheme, setMeshTheme] = useState<PortfolioMeshTheme>("network");
   const activeSection = useSectionScrollSpy(SECTION_IDS);
 
+  const goToNavSection = (id: string) => {
+    scrollToSectionId(id);
+    setMobileNavOpen(false);
+  };
+
   const pageBgClass =
     meshTheme === "spectrum"
       ? "bg-[#05070d]"
@@ -872,13 +1152,14 @@ export default function WesLanding({ onBack }: WesLandingProps) {
 
   return (
     <div
+      ref={landingRootRef}
       data-wes-mesh-theme={meshTheme}
       className={`wes-landing-root relative min-h-screen w-full text-neutral-100 transition-[opacity,background-color] duration-500 ease-[cubic-bezier(0.33,1,0.68,1)] will-change-[opacity] ${pageBgClass} ${
         visible && !exiting ? "opacity-100" : "opacity-0"
       }`}
     >
       <style>{`
-        @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap");
+        @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@500;600&display=swap");
         .wes-landing-root {
           font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
           font-size: 16px;
@@ -889,12 +1170,43 @@ export default function WesLanding({ onBack }: WesLandingProps) {
         .wes-label-mono {
           font-family: "IBM Plex Mono", ui-monospace, monospace;
         }
-        @keyframes wes-hero-line {
-          0% { opacity: 0; }
-          100% { opacity: 1; }
+        /* Logo mobile — tag estilo terminal; “w” na mesma cor que &lt; e /&gt; */
+        .nav-logo {
+          display: inline-flex;
+          align-items: center;
+          font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+          font-size: 0.95rem;
+          letter-spacing: 0.06em;
+          line-height: 1;
         }
-        .wes-hero-enter {
-          animation: wes-hero-line 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        .nav-logo .tag {
+          color: #6b7280;
+          opacity: 0.7;
+        }
+        .nav-logo .w {
+          margin: 0 2px;
+          font-weight: 600;
+          color: #6b7280;
+          opacity: 0.7;
+        }
+        .group:hover .nav-logo .tag {
+          opacity: 0.85;
+          color: #9ca3af;
+        }
+        .group:hover .nav-logo .w {
+          opacity: 0.85;
+          color: #9ca3af;
+        }
+        @keyframes wes-scroll-hint {
+          0%,
+          100% {
+            transform: translateY(0);
+            opacity: 0.55;
+          }
+          50% {
+            transform: translateY(6px);
+            opacity: 1;
+          }
         }
         @keyframes wes-hero-name-in {
           0% {
@@ -1003,17 +1315,6 @@ export default function WesLanding({ onBack }: WesLandingProps) {
             rgba(5, 7, 13, 0) 100%
           );
         }
-        .wes-skills-section:not(.wes-skills-section--inview) {
-          opacity: 0;
-          transform: translate3d(0, 32px, 0);
-        }
-        .wes-skills-section--inview {
-          opacity: 1;
-          transform: translate3d(0, 0, 0);
-          transition:
-            opacity 0.95s cubic-bezier(0.22, 1, 0.36, 1),
-            transform 0.95s cubic-bezier(0.22, 1, 0.36, 1);
-        }
         @keyframes wes-skills-stage-float {
           0%,
           100% {
@@ -1099,10 +1400,10 @@ export default function WesLanding({ onBack }: WesLandingProps) {
           -webkit-backdrop-filter: blur(20px);
         }
         .wes-skills-hero-wrap {
-          width: 132px;
-          height: 132px;
+          width: 148px;
+          height: 148px;
         }
-        @media (min-width: 640px) {
+        @media (min-width: 768px) {
           .wes-skills-hero-wrap {
             width: 140px;
             height: 140px;
@@ -1174,6 +1475,59 @@ export default function WesLanding({ onBack }: WesLandingProps) {
           opacity: 1;
           transform: translateY(0) scale(1);
         }
+        @keyframes wes-carousel-slide-exit {
+          from {
+            opacity: 1;
+            transform: scale(1);
+            filter: blur(0);
+          }
+          to {
+            opacity: 0;
+            transform: scale(0.96);
+            filter: blur(4px);
+          }
+        }
+        @keyframes wes-carousel-slide-enter {
+          from {
+            opacity: 0;
+            transform: scale(1.04);
+            filter: blur(0);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+            filter: blur(0);
+          }
+        }
+        .wes-carousel-layer-exit {
+          transform-origin: center center;
+          will-change: transform, opacity, filter;
+          animation: wes-carousel-slide-exit ${FEATURED_CAROUSEL_TRANSITION_MS}ms
+            cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .wes-carousel-layer-enter {
+          transform-origin: center center;
+          will-change: transform, opacity, filter;
+          animation: wes-carousel-slide-enter ${FEATURED_CAROUSEL_TRANSITION_MS}ms
+            cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        @keyframes wes-carousel-detail-in {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+            filter: blur(4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+            filter: blur(0);
+          }
+        }
+        .wes-carousel-detail-enter {
+          will-change: transform, opacity, filter;
+          animation: wes-carousel-detail-in ${FEATURED_CAROUSEL_TEXT_ENTER_MS}ms
+            cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
         .wes-skills-tag {
           display: inline-flex;
           align-items: center;
@@ -1209,12 +1563,6 @@ export default function WesLanding({ onBack }: WesLandingProps) {
           .wes-skills-tab-icon {
             animation: none !important;
           }
-          .wes-skills-section:not(.wes-skills-section--inview),
-          .wes-skills-section--inview {
-            opacity: 1 !important;
-            transform: none !important;
-            transition: none !important;
-          }
           .wes-skills-hero-icon--breathe {
             animation: none !important;
           }
@@ -1234,6 +1582,21 @@ export default function WesLanding({ onBack }: WesLandingProps) {
             opacity: 1 !important;
             transform: none !important;
           }
+          .wes-carousel-layer-exit,
+          .wes-carousel-layer-enter {
+            animation: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+            filter: none !important;
+            will-change: auto !important;
+          }
+          .wes-carousel-detail-enter {
+            animation: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+            filter: none !important;
+            will-change: auto !important;
+          }
         }
       `}</style>
 
@@ -1249,12 +1612,13 @@ export default function WesLanding({ onBack }: WesLandingProps) {
         ) : null}
         <InteractiveWebBackground
           meshTheme={meshTheme}
-          className={`absolute inset-0 h-full w-full transition-opacity duration-500 ${
+          className={`wes-bg-interactive-mesh absolute inset-0 h-full w-full transition-opacity duration-500 ${
             meshTheme === "ember" ? "opacity-[0.48]" : "opacity-[0.55]"
           }`}
         />
         <div
-          className={`absolute inset-0 transition-opacity duration-500 ${
+          data-wes-starfield
+          className={`wes-bg-starfield absolute inset-0 transition-opacity duration-500 ${
             meshTheme === "ember"
               ? "opacity-[0.14]"
               : meshTheme === "spectrum"
@@ -1316,10 +1680,46 @@ export default function WesLanding({ onBack }: WesLandingProps) {
       ) : null}
 
       <nav
-        className="wes-top-nav fixed left-1/2 top-3 z-50 w-[min(100%,calc(100vw-1rem))] max-w-4xl -translate-x-1/2 px-2 sm:top-6 sm:w-[min(100%,calc(100vw-5rem))] sm:px-3 lg:w-[min(100%,calc(100vw-7rem))]"
+        className="wes-top-nav pointer-events-none fixed left-1/2 top-3 z-50 w-[min(100%,calc(100vw-1.25rem))] max-w-4xl -translate-x-1/2 px-0 sm:top-6 sm:w-[min(100%,calc(100vw-5rem))] sm:px-3 lg:w-[min(100%,calc(100vw-7rem))]"
         aria-label="Navegação principal"
       >
-        <div className="flex max-w-full flex-wrap items-center justify-center gap-0.5 rounded-full border border-white/[0.1] bg-white/[0.05] px-1 py-1 shadow-[0_6px_28px_rgba(0,0,0,0.32)] backdrop-blur-md sm:gap-0 sm:border-white/[0.12] sm:bg-white/[0.06] sm:px-2 sm:py-1.5 sm:shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
+        {/* Mobile: cápsula + menu (glass / iOS-like) */}
+        <div className="pointer-events-auto flex h-14 min-h-[56px] w-full max-h-14 items-center justify-between gap-3 rounded-full border border-white/[0.055] bg-[rgba(255,255,255,0.038)] pl-[18px] pr-4 shadow-[0_10px_36px_rgba(0,0,0,0.11),0_1px_6px_rgba(0,0,0,0.05),inset_0_1px_0_rgba(255,255,255,0.065)] backdrop-blur-[14px] sm:pl-5 sm:pr-5 lg:hidden">
+          <a
+            href="#home"
+            className="group flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-start select-none [-webkit-tap-highlight-color:transparent] motion-safe:transition-[transform,filter] motion-safe:duration-200 motion-safe:hover:scale-[1.02] motion-safe:hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.07)] motion-safe:active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400/35"
+            onClick={(e) => {
+              e.preventDefault();
+              goToNavSection("home");
+            }}
+            aria-label="Início"
+          >
+            <span className="nav-logo" aria-hidden>
+              <span className="tag">&lt;</span>
+              <span className="w">w</span>
+              <span className="tag">/&gt;</span>
+            </span>
+          </a>
+          <button
+            type="button"
+            className="inline-flex h-10 min-h-[44px] w-10 min-w-[44px] shrink-0 items-center justify-center rounded-full border border-white/[0.045] bg-white/[0.035] text-neutral-300/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-[6px] transition-[background-color,border-color,transform,box-shadow] duration-200 hover:border-white/[0.065] hover:bg-white/[0.055] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400/35"
+            aria-expanded={mobileNavOpen}
+            aria-controls="wes-mobile-nav-panel"
+            onClick={() => setMobileNavOpen((o) => !o)}
+          >
+            {mobileNavOpen ? (
+              <X className="h-[1.05rem] w-[1.05rem]" strokeWidth={1.5} aria-hidden />
+            ) : (
+              <Menu className="h-[1.05rem] w-[1.05rem]" strokeWidth={1.5} aria-hidden />
+            )}
+            <span className="sr-only">
+              {mobileNavOpen ? "Fechar menu" : "Abrir menu"}
+            </span>
+          </button>
+        </div>
+
+        {/* Desktop: links inline */}
+        <div className="pointer-events-auto mt-0 hidden w-full flex-wrap items-center justify-center gap-0.5 rounded-full border border-white/[0.1] bg-white/[0.05] px-1 py-1 shadow-[0_6px_28px_rgba(0,0,0,0.32)] backdrop-blur-md sm:gap-0 sm:border-white/[0.12] sm:bg-white/[0.06] sm:px-2 sm:py-1.5 sm:shadow-[0_8px_32px_rgba(0,0,0,0.35)] lg:flex">
           {NAV_ITEMS.map((item, i) => {
             const active = activeSection === i;
             return (
@@ -1360,26 +1760,34 @@ export default function WesLanding({ onBack }: WesLandingProps) {
         </div>
       </nav>
 
+      <WesMobileNavPanel
+        open={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        onNavigate={goToNavSection}
+        meshTheme={meshTheme}
+        onCycleMeshTheme={() => setMeshTheme((t) => nextPortfolioMeshTheme(t))}
+      />
+
       <div className="relative z-[1] mx-auto flex w-full flex-col pb-24">
         {/* Hero — duas colunas: texto à esquerda + slot visual à direita (troque o conteúdo por WebGL/3D) */}
         <section
           id="home"
-          className="hero wes-hero w-full scroll-mt-24 text-left max-lg:pt-[clamp(2.6rem,8vw,3.85rem)] lg:scroll-mt-28 lg:pt-[clamp(4.5rem,10vw,6rem)]"
+          className="hero wes-hero w-full scroll-mt-24 text-left max-lg:pt-[clamp(3.25rem,10vw,4.5rem)] lg:scroll-mt-28 lg:pt-[clamp(4.5rem,10vw,6rem)]"
           aria-labelledby="wes-hero-name"
         >
           <div className="hero-container">
-          <div className="wes-hero-enter wes-hero-text-col order-1 min-w-0 w-full lg:shrink-0">
-            <p className="wes-hero-hello-badge wes-label-mono inline-flex items-center rounded-full border border-white/[0.09] bg-[#0a1018]/80 px-3 py-1 text-[0.6875rem] font-medium tracking-[0.02em] text-neutral-400/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <div className="wes-hero-text-col order-1 flex min-w-0 w-full flex-col max-lg:items-center max-lg:text-center lg:shrink-0">
+            <p className="wes-hero-hello-badge wes-label-mono is-reveal wes-reveal-s1 inline-flex items-center rounded-full border border-white/[0.1] bg-black/55 px-3 py-1.5 text-[0.6875rem] font-medium tracking-[0.02em] text-neutral-300/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] max-lg:mx-auto lg:w-fit lg:self-start">
               Hello!
             </p>
             <h1
               id="wes-hero-name"
-              className="wes-hero-title mt-4 max-w-[min(100%,28rem)] text-[clamp(1.85rem,5.2vw,3.45rem)] leading-[1.08] tracking-[-0.038em] sm:mt-6 sm:max-w-none sm:text-[clamp(2rem,4.6vw,3.45rem)] md:mt-7 md:text-[clamp(2.1rem,3.8vw,3.5rem)]"
+              className="wes-hero-title is-reveal wes-reveal-s2 mt-5 max-w-[min(100%,22rem)] text-[clamp(2rem,6.5vw,3.45rem)] leading-[1.06] tracking-[-0.038em] max-lg:mx-auto sm:mt-7 sm:max-w-none sm:text-[clamp(2rem,4.6vw,3.45rem)] md:mt-7 md:text-[clamp(2.1rem,3.8vw,3.5rem)]"
             >
               <span className="wes-hero-name-gradient">Wesley Cruz</span>
             </h1>
             <p
-              className="wes-hero-role mt-4 min-h-[2.85rem] max-w-[min(100%,28rem)] text-[clamp(1rem,2.8vw+0.65rem,1.28rem)] leading-[1.45] tracking-[-0.014em] text-neutral-400/95 sm:mt-6 sm:min-h-[2.85rem] sm:max-w-[32rem] sm:text-[clamp(1.05rem,1.2vw+0.8rem,1.28rem)] sm:leading-[1.5] md:mt-7"
+              className="wes-hero-role is-reveal wes-reveal-s3 mt-5 min-h-[2.85rem] max-w-[min(100%,24rem)] text-[clamp(1.02rem,3.2vw+0.55rem,1.28rem)] leading-[1.52] tracking-[-0.014em] text-neutral-400/95 max-lg:mx-auto sm:mt-7 sm:min-h-[2.85rem] sm:max-w-[32rem] sm:text-[clamp(1.05rem,1.2vw+0.8rem,1.28rem)] sm:leading-[1.5] md:mt-7"
               aria-live="polite"
             >
               <span className="inline break-words align-middle font-medium text-neutral-200/88">
@@ -1387,51 +1795,61 @@ export default function WesLanding({ onBack }: WesLandingProps) {
               </span>
               {!prefersReducedMotion ? (
                 <span
-                  className="cursor-blink ml-0.5 inline-block h-[1em] w-[2px] translate-y-[0.06em] align-middle bg-emerald-400/55"
+                  className="cursor-blink ml-0.5 inline-block h-[1em] w-[2px] translate-y-[0.06em] align-middle bg-white/45 max-lg:bg-white/40"
                   aria-hidden
                 />
               ) : null}
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-2 sm:mt-11 sm:gap-3 md:mt-12">
+            <div className="is-reveal wes-reveal-s4 mt-10 grid w-full max-w-md grid-cols-2 gap-3 sm:mt-12 sm:flex sm:max-w-none sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-3 md:mt-14 md:gap-3.5">
               <a
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="wes-hero-social wes-label-mono inline-flex h-9 min-h-[40px] items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.03] px-3 text-[0.7rem] font-medium tracking-[0.03em] text-neutral-300/95 transition-[background-color,border-color,color] duration-200 ease-out hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/18 sm:h-10 sm:min-h-0 sm:gap-2 sm:px-[1.15rem] sm:text-[0.78rem]"
+                className="wes-hero-social wes-label-mono inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-white/[0.11] bg-white/[0.04] px-3 text-[0.72rem] font-medium tracking-[0.03em] text-neutral-200/95 transition-[background-color,border-color,color] duration-200 ease-out hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/18 sm:h-10 sm:min-h-0 sm:w-auto sm:rounded-full sm:gap-2 sm:px-[1.15rem] sm:text-[0.78rem]"
               >
-                <Github size={16} className="h-[15px] w-[15px] sm:h-4 sm:w-4" aria-hidden />
+                <Github size={16} className="h-[15px] w-[15px] shrink-0 sm:h-4 sm:w-4" aria-hidden />
                 GitHub
-                <ExternalLink size={11} className="opacity-35" aria-hidden />
+                <ExternalLink size={11} className="hidden opacity-35 sm:inline" aria-hidden />
               </a>
               <a
                 href={CONTACT.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="wes-hero-social wes-label-mono inline-flex h-9 min-h-[40px] items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.03] px-3 text-[0.7rem] font-medium tracking-[0.03em] text-neutral-300/95 transition-[background-color,border-color,color] duration-200 ease-out hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/18 sm:h-10 sm:min-h-0 sm:gap-2 sm:px-[1.15rem] sm:text-[0.78rem]"
+                className="wes-hero-social wes-label-mono inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-white/[0.11] bg-white/[0.04] px-3 text-[0.72rem] font-medium tracking-[0.03em] text-neutral-200/95 transition-[background-color,border-color,color] duration-200 ease-out hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/18 sm:h-10 sm:min-h-0 sm:w-auto sm:rounded-full sm:gap-2 sm:px-[1.15rem] sm:text-[0.78rem]"
               >
-                <Linkedin size={16} className="h-[15px] w-[15px] sm:h-4 sm:w-4" aria-hidden />
+                <Linkedin size={16} className="h-[15px] w-[15px] shrink-0 sm:h-4 sm:w-4" aria-hidden />
                 LinkedIn
-                <ExternalLink size={11} className="opacity-35" aria-hidden />
+                <ExternalLink size={11} className="hidden opacity-35 sm:inline" aria-hidden />
               </a>
               <a
                 href={BBS_TERMINAL_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="wes-hero-social wes-label-mono inline-flex h-9 min-h-[40px] items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.03] px-3 text-[0.68rem] font-medium tracking-[0.03em] text-neutral-300/95 transition-[background-color,border-color,color] duration-200 ease-out hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/18 sm:h-10 sm:min-h-0 sm:gap-2 sm:px-[1.15rem] sm:text-[0.78rem]"
+                className="wes-hero-social wes-label-mono col-span-2 inline-flex h-11 min-h-[44px] w-full max-w-[min(100%,20rem)] items-center justify-center justify-self-center gap-2 rounded-xl border border-white/[0.11] bg-white/[0.04] px-4 text-[0.72rem] font-medium tracking-[0.03em] text-neutral-200/95 transition-[background-color,border-color,color] duration-200 ease-out hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/18 sm:h-10 sm:min-h-0 sm:w-auto sm:max-w-none sm:rounded-full sm:justify-center sm:gap-2 sm:px-[1.15rem] sm:text-[0.78rem]"
                 title="Portfolio BBS"
               >
-                <Globe size={16} className="h-[15px] w-[15px] sm:h-4 sm:w-4" aria-hidden />
-                <span className="inline sm:hidden">BBS</span>
-                <span className="hidden sm:inline">Portfolio BBS</span>
-                <ExternalLink size={11} className="opacity-35" aria-hidden />
+                <Globe size={16} className="h-[15px] w-[15px] shrink-0 sm:h-4 sm:w-4" aria-hidden />
+                Portfolio BBS
+                <ExternalLink size={11} className="hidden opacity-35 sm:inline" aria-hidden />
               </a>
+            </div>
+
+            <div className="is-reveal wes-reveal-s5 mt-10 flex flex-col items-center gap-2.5 lg:hidden">
+              <ChevronDown
+                className="h-5 w-5 text-neutral-500/90 motion-safe:animate-[wes-scroll-hint_2.2s_ease-in-out_infinite] motion-reduce:animate-none"
+                strokeWidth={1.75}
+                aria-hidden
+              />
+              <p className="wes-label-mono text-center text-[0.62rem] font-medium uppercase tracking-[0.32em] text-neutral-500/95">
+                Role para ver mais
+              </p>
             </div>
           </div>
 
           <div className="order-2 hidden w-full min-w-0 justify-center self-stretch lg:order-2 lg:flex lg:justify-end lg:pl-2 xl:pl-4">
             <div
-              className="wes-hero-visual-slot relative flex w-full min-w-0 flex-col items-stretch lg:max-w-none lg:items-end"
+              className="wes-hero-visual-slot is-reveal wes-reveal-s4 relative flex w-full min-w-0 flex-col items-stretch lg:max-w-none lg:items-end"
               data-wes-hero-visual=""
             >
               <HeroPortfolioVisual />
@@ -1447,17 +1865,22 @@ export default function WesLanding({ onBack }: WesLandingProps) {
           aria-labelledby="wes-about-title"
         >
           <div className="about-header">
-            <span className="about-header-label">Sobre mim</span>
-            <h2 id="wes-about-title" className="about-header-name">
+            <span className="about-header-label is-reveal wes-reveal-s1">
+              Sobre mim
+            </span>
+            <h2
+              id="wes-about-title"
+              className="about-header-name is-reveal wes-reveal-s2"
+            >
               Wesley <span>Vitor Souza</span> Cruz
             </h2>
-            <p className="about-header-tagline">
+            <p className="about-header-tagline is-reveal wes-reveal-s3">
               Desenvolvedor Full Stack • Transformando ideias em código
             </p>
           </div>
 
           <div className="about-content">
-            <div className="about-card">
+            <div className="about-card is-reveal wes-reveal-s3">
               <img
                 src={assetUrl("/textures/eu.jpg")}
                 alt="Foto de perfil de Wesley"
@@ -1468,7 +1891,7 @@ export default function WesLanding({ onBack }: WesLandingProps) {
               />
             </div>
 
-            <div className="about-text">
+            <div className="about-text is-reveal wes-reveal-s4">
               <p>
                 Prazer! Sou desenvolvedor full stack e atuo na fronteira entre
                 código e interface: construo telas e sistemas com intenção de
@@ -1493,21 +1916,21 @@ export default function WesLanding({ onBack }: WesLandingProps) {
         {/* Projetos em destaque */}
         <section
           id="work"
-          className="relative mt-20 scroll-mt-28 border-t border-white/[0.07] pt-16 md:mt-24 md:pt-20"
+          className="relative mt-[clamp(5rem,14vw,7rem)] scroll-mt-28 border-t border-white/[0.07] pt-[clamp(3.5rem,10vw,5rem)] md:mt-24 md:pt-20"
           aria-labelledby="wes-work-title"
         >
-          <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.02] p-8 shadow-[0_10px_40px_rgba(0,0,0,0.28),0_0_28px_rgba(56,189,248,0.05)] backdrop-blur-[8px] md:p-10">
+          <div className="relative overflow-hidden rounded-[1.35rem] border border-white/[0.08] bg-white/[0.02] p-6 shadow-[0_10px_40px_rgba(0,0,0,0.28),0_0_28px_rgba(56,189,248,0.05)] backdrop-blur-[8px] sm:rounded-3xl sm:p-8 md:p-10">
             <div className="relative">
-              <p className="wes-label-mono text-[0.62rem] font-semibold uppercase tracking-[0.38em] text-neutral-500">
+              <p className="wes-label-mono is-reveal wes-reveal-s1 text-[0.62rem] font-semibold uppercase tracking-[0.38em] text-neutral-500">
                 Navegue pelos destaques
               </p>
               <h2
                 id="wes-work-title"
-                className="mt-3 text-[1.65rem] font-semibold tracking-tight text-white md:text-3xl"
+                className="is-reveal wes-reveal-s2 mt-3 text-[1.65rem] font-semibold tracking-tight text-white md:text-3xl"
               >
                 Projetos em destaque
               </h2>
-              <p className="mt-3 max-w-lg text-sm leading-relaxed text-neutral-500 md:text-[0.95rem]">
+              <p className="is-reveal wes-reveal-s3 mt-3 max-w-lg text-sm leading-relaxed text-neutral-500 md:text-[0.95rem]">
                 Confira uma seleção dos principais projetos — um por vez, com a
                 mesma identidade e rigor de entrega.{" "}
                 <a
@@ -1520,10 +1943,12 @@ export default function WesLanding({ onBack }: WesLandingProps) {
                 </a>
               </p>
 
+              <div className="is-reveal wes-reveal-s4">
               <WorkFeaturedCarousel
                 active={projectSlide}
                 onSelect={setProjectSlide}
               />
+              </div>
             </div>
           </div>
         </section>
@@ -1532,20 +1957,20 @@ export default function WesLanding({ onBack }: WesLandingProps) {
 
         <section
           id="education"
-          className="mt-20 scroll-mt-28 border-t border-white/[0.07] pt-16 md:mt-24 md:pt-20"
+          className="mt-[clamp(5rem,14vw,7rem)] scroll-mt-28 border-t border-white/[0.07] pt-[clamp(3.5rem,10vw,5rem)] md:mt-24 md:pt-20"
           aria-labelledby="wes-education-title"
         >
-          <div className="mx-auto max-w-3xl text-center md:text-left">
-            <p className="wes-label-mono text-[0.68rem] font-medium uppercase tracking-[0.38em] text-neutral-500">
+          <div className="mx-auto max-w-3xl px-1 text-center md:px-0 md:text-left">
+            <p className="wes-label-mono is-reveal wes-reveal-s1 text-[0.68rem] font-medium uppercase tracking-[0.38em] text-neutral-500">
               Formação
             </p>
             <h2
               id="wes-education-title"
-              className="mt-3 text-[1.65rem] font-semibold tracking-tight text-white md:text-3xl"
+              className="is-reveal wes-reveal-s2 mt-3 text-[clamp(1.5rem,4.5vw,1.85rem)] font-semibold tracking-tight text-white md:text-3xl"
             >
               Educação
             </h2>
-            <p className="mt-4 text-sm leading-relaxed text-neutral-500 md:text-[0.95rem]">
+            <p className="is-reveal wes-reveal-s3 mt-5 text-[0.95rem] leading-relaxed text-neutral-400/95 max-md:mx-auto max-md:max-w-md md:mt-4 md:text-[0.95rem] md:text-neutral-500">
               Cursos e formação acadêmica que sustentam a base técnica por trás
               dos projetos — atualize esta seção com instituição, curso e
               período.

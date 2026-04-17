@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Github, Mail, MessageCircle } from "lucide-react";
 import { CONTACT } from "@/contact";
 
 export default function ContactLinks() {
@@ -30,13 +31,16 @@ export default function ContactLinks() {
   return (
     <div className="contact-links">
       <button type="button" onClick={handleWhatsApp}>
-        WhatsApp
+        <MessageCircle className="contact-links-icon" strokeWidth={2} aria-hidden />
+        <span>WhatsApp</span>
       </button>
       <button type="button" onClick={handleCopyEmail}>
-        Copiar E-mail
+        <Mail className="contact-links-icon" strokeWidth={2} aria-hidden />
+        <span>Copiar E-mail</span>
       </button>
       <button type="button" onClick={handleGithub}>
-        SoftwareHouse
+        <Github className="contact-links-icon" strokeWidth={2} aria-hidden />
+        <span>SoftwareHouse</span>
       </button>
       {copyStatus ? (
         <p className="contact-links-hint" role="status" aria-live="polite">

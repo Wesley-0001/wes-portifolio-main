@@ -46,6 +46,52 @@ body,
   background: #384454;
 }
 
+/* Scroll reveal — editorial, uma vez por elemento (classe .is-revealed via IO) */
+.wes-landing-root .is-reveal {
+  opacity: 0;
+  transform: translate3d(0, 20px, 0);
+  filter: blur(2.5px);
+  transition-property: opacity, transform, filter;
+  transition-duration: 0.65s;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--wes-reveal-delay, 0ms);
+}
+
+.wes-landing-root .is-reveal.is-revealed {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  filter: blur(0);
+}
+
+/* Stagger leve — hierarquia título → texto → bloco */
+.wes-landing-root .is-reveal.wes-reveal-s1 {
+  --wes-reveal-delay: 0ms;
+}
+.wes-landing-root .is-reveal.wes-reveal-s2 {
+  --wes-reveal-delay: 70ms;
+}
+.wes-landing-root .is-reveal.wes-reveal-s3 {
+  --wes-reveal-delay: 140ms;
+}
+.wes-landing-root .is-reveal.wes-reveal-s4 {
+  --wes-reveal-delay: 210ms;
+}
+.wes-landing-root .is-reveal.wes-reveal-s5 {
+  --wes-reveal-delay: 280ms;
+}
+.wes-landing-root .is-reveal.wes-reveal-s6 {
+  --wes-reveal-delay: 350ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wes-landing-root .is-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
+}
+
 .cursor-blink {
   animation: blink 1.35s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
@@ -75,7 +121,7 @@ body,
 
 @media (max-width: 1023px) {
   .wes-landing-root section.hero.wes-hero {
-    min-height: min(92svh, 880px);
+    min-height: min(88svh, 820px);
     align-items: center;
     justify-content: center;
   }
@@ -99,8 +145,10 @@ body,
     align-items: start;
     gap: 0;
     row-gap: 0;
-    padding-top: clamp(2.25rem, 7vw, 3.25rem);
-    padding-bottom: clamp(3.5rem, 12vw, 5.5rem);
+    padding-top: clamp(2.75rem, 8vw, 3.5rem);
+    padding-bottom: clamp(4rem, 14vw, 5.75rem);
+    padding-left: clamp(1.15rem, 4.5vw, 1.5rem);
+    padding-right: clamp(1.15rem, 4.5vw, 1.5rem);
   }
 }
 
@@ -128,10 +176,44 @@ body,
   text-shadow: none;
 }
 
+/* Badge "Hello!" — só desktop: pill compacto, sem stretch, leitura e presença (mobile inalterado) */
+@media (min-width: 1024px) {
+  .wes-landing-root .wes-hero-hello-badge {
+    width: fit-content;
+    max-width: none;
+    align-self: flex-start;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background-color: rgba(10, 12, 20, 0.82);
+    color: rgba(245, 245, 245, 0.96);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.11),
+      0 0 0 1px rgba(255, 255, 255, 0.03),
+      0 6px 26px rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
 @media (min-width: 640px) {
   .wes-landing-root .wes-hero-text-col .wes-hero-name-gradient {
     white-space: nowrap;
     letter-spacing: -0.04em;
+  }
+}
+
+/* Hero mobile — nome sólido branco como referência (gradiente só em lg+) */
+@media (max-width: 1023px) {
+  .wes-landing-root .wes-hero-text-col .wes-hero-name-gradient {
+    background-image: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+    color: #fafafa;
+    font-weight: 600;
+    animation: none;
+    filter: none;
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -402,30 +484,49 @@ body,
 @media (max-width: 900px) {
   .wes-landing-root section.about .about-content {
     grid-template-columns: 1fr;
-    gap: clamp(1.75rem, 5vw, 2.5rem);
+    gap: clamp(2rem, 6vw, 2.75rem);
   }
 
   .wes-landing-root section.about .about-card {
     max-width: none;
     width: 100%;
     margin: 0;
-    padding: 0.65rem;
-    border-radius: 1rem;
+    padding: 0.75rem;
+    border-radius: 1.15rem;
+    box-shadow:
+      0 28px 64px -32px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   /* Retrato amplo na About — única foto no fluxo mobile */
   .wes-landing-root section.about .about-card img {
     width: 100%;
     height: auto;
-    max-height: min(15.5rem, 52vw);
-    aspect-ratio: 16 / 9;
-    border-radius: 0.65rem;
+    max-height: min(17.5rem, 58vw);
+    aspect-ratio: 4 / 3;
+    border-radius: 0.85rem;
     object-fit: cover;
     object-position: center 18%;
   }
 
   .wes-landing-root section.about .about-header {
-    margin-bottom: clamp(2rem, 6vw, 2.75rem);
+    margin-bottom: clamp(2.25rem, 7vw, 3rem);
+    text-align: center;
+  }
+
+  .wes-landing-root section.about .about-header-name {
+    font-size: clamp(1.65rem, 5.8vw, 2.1rem);
+  }
+
+  .wes-landing-root section.about .about-text {
+    gap: 1.35rem;
+  }
+
+  .wes-landing-root section.about .about-text p {
+    font-size: 1.02rem;
+    line-height: 1.78;
+    opacity: 0.88;
+    text-align: left;
   }
 }
 
@@ -530,6 +631,13 @@ body,
   color: rgba(212, 212, 216, 0.65);
 }
 
+.wes-landing-root .contact-links .contact-links-icon {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  opacity: 0.92;
+}
+
 .wes-landing-root .contact-form {
   display: flex;
   flex-direction: column;
@@ -632,12 +740,6 @@ body,
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-@media (max-width: 768px) {
-  .wes-landing-root footer.footer {
-    padding: 40px 24px;
-  }
-}
-
 .wes-landing-root footer.footer .footer-top {
   display: flex;
   justify-content: space-between;
@@ -718,4 +820,117 @@ body,
   font-size: 13px;
   opacity: 0.5;
   color: rgba(212, 212, 216, 0.9);
+}
+
+/* —— Mobile premium (≤1023px): ritmo, partículas mais sutis, contato tipo produto —— */
+@media (max-width: 1023px) {
+  .wes-landing-root .wes-bg-interactive-mesh {
+    opacity: 0.4 !important;
+  }
+
+  .wes-landing-root [data-wes-starfield] {
+    opacity: 0.11 !important;
+  }
+
+  .wes-landing-root .wes-skills-stage {
+    aspect-ratio: 1.06 / 1;
+    max-width: min(100%, 26rem);
+  }
+}
+
+@media (max-width: 899px) {
+  .wes-landing-root section.contact {
+    padding: clamp(3rem, 10vw, 4.25rem) clamp(1.1rem, 4.5vw, 1.5rem)
+      clamp(3.5rem, 12vw, 5rem);
+  }
+
+  .wes-landing-root section.contact .contact-header h2 {
+    font-size: clamp(1.85rem, 6.5vw, 2.45rem);
+  }
+
+  .wes-landing-root section.contact .contact-content {
+    margin-top: clamp(2rem, 7vw, 2.75rem);
+    gap: clamp(1.75rem, 5vw, 2.25rem);
+  }
+}
+
+/* Botões utilitários claros — telefone estreito (~360–430px), tablet mantém vidro */
+@media (max-width: 639px) {
+  .wes-landing-root .contact-links {
+    gap: 12px;
+  }
+
+  .wes-landing-root .contact-links button {
+    min-height: 52px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    background: #f4f4f5;
+    color: #0a0a0b;
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.7) inset,
+      0 12px 36px -18px rgba(0, 0, 0, 0.45);
+  }
+
+  .wes-landing-root .contact-links button:hover {
+    background: #ececee;
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .wes-landing-root .contact-links .contact-links-icon {
+    color: #0a0a0a;
+    opacity: 1;
+  }
+
+  .wes-landing-root .contact-form button {
+    align-self: flex-end;
+    margin-top: 6px;
+    background: #f4f4f5;
+    color: #0a0a0b;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    font-weight: 600;
+    padding: 12px 22px;
+    border-radius: 12px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) inset;
+  }
+
+  .wes-landing-root .contact-form button:hover {
+    background: #ececee;
+  }
+}
+
+@media (max-width: 768px) {
+  .wes-landing-root footer.footer {
+    padding: 2.75rem 1.25rem 2.5rem;
+  }
+
+  .wes-landing-root footer.footer .footer-top {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .wes-landing-root footer.footer .footer-top p {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .wes-landing-root footer.footer .footer-right {
+    width: 100%;
+    text-align: center;
+  }
+
+  .wes-landing-root footer.footer .footer-bottom {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .wes-landing-root footer.footer .footer-bottom nav {
+    justify-content: center;
+    gap: 1.25rem 1.5rem;
+  }
 }
